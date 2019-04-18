@@ -1,811 +1,238 @@
-#!/usr/bin/env ruby
-# encoding: utf-8
-# frozen_string_literal: true
-# warn_indent: true
-
-# This file should contain all the record creation needed to seed the database
-# with its default values. The data can then be loaded with the rake db:seed
-# (or created alongside the db with db:setup).
-
-require 'factory_bot'
-require 'faker'
-
-include FactoryBot::Syntax::Methods
-
-I18n.available_locales = ['en', 'en-GB', 'de', 'fr']
-I18n.locale                = LocaleFormatter.new(:en, format: :i18n).to_s
-# Keep this as :en. Faker doesn't have :en-GB
-Faker::Config.locale       = LocaleFormatter.new(:en, format: :i18n).to_s
-FastGettext.default_locale = LocaleFormatter.new(:en, format: :fast_gettext).to_s
-
-
-require 'factory_bot'
-include FactoryBot::Syntax::Methods
-
-# Identifier Schemes
-# -------------------------------------------------------
-identifier_schemes = [
-  {
-    name: 'orcid',
-    description: 'ORCID',
-    active: true,
-    logo_url:'http://orcid.org/sites/default/files/images/orcid_16x16.png',
-    user_landing_url:'https://orcid.org'
-  },
-  {
-    name: 'shibboleth',
-    description: 'Your institutional credentials',
-    active: true,
-    logo_url: 'http://newsite.shibboleth.net/wp-content/uploads/2017/01/Shibboleth-logo_2000x1200-1.png',
-    user_landing_url: "https://example.com"
-  },
-]
-identifier_schemes.map { |is| create(:identifier_scheme, is) }
-
-# Question Formats
-# -------------------------------------------------------
-question_formats = [
-  {
-    title: "Text area",
-    option_based: false,
-    formattype: 0
-  },
-  {
-    title: "Text field",
-    option_based: false,
-    formattype: 1
-  },
-  {
-    title: "Radio buttons",
-    option_based: true,
-    formattype: 2
-  },
-  {
-    title: "Check box",
-    option_based: true,
-    formattype: 3
-  },
-  {
-    title: "Dropdown",
-    option_based: true,
-    formattype: 4
-  },
-  {
-    title: "Multi select box",
-    option_based: true,
-    formattype: 5
-  },
-  {
-    title: "Date",
-    option_based: false,
-    formattype: 6
-  }
-]
-question_formats.map{ |qf| create(:question_format, qf) }
-
-# Languages (check config/locales for any ones not defined here)
-# -------------------------------------------------------
-languages = [
-  {abbreviation: 'en-GB',
-   description: '',
-   name: 'English (GB)',
-   default_language: true},
-  {abbreviation: 'en-US',
-   description: '',
-   name: 'English (US)',
-   default_language: false},
-  {abbreviation: 'fr',
-   description: '',
-   name: 'Français',
-   default_language: false},
-  {abbreviation: 'de',
-   description: '',
-   name: 'Deutsch',
-   default_language: false},
-  {abbreviation: 'es',
-   description: '',
-   name: 'Español',
-   default_language: false}
-]
-languages.map { |l| create(:language, l) }
-
-# Scan through the locale files and add an entry if a file is present but
-# not defined in this seed file
-Dir.entries("#{Rails.root.join("config", "locales").to_s}").each do |f|
-  if f[-4..-1] == '.yml'
-    lang = f.gsub('.yml', '')
-
-    if Language.where(abbreviation: lang).empty?
-      Language.create!({
-        abbreviation: lang,
-        description: lang,
-        name: lang,
-        default_language: false
-      })
-    end
-  end
-end
-
-# Regions (create the super regions first and then create the rest)
-# -------------------------------------------------------
-regions = [
-  {abbreviation: 'horizon',
-   description: 'European super region',
-   name: 'Horizon2020',
-
-   sub_regions: [
-     {abbreviation: 'uk',
-      description: 'United Kingdom',
-      name: 'UK'},
-     {abbreviation: 'de',
-      description: 'Germany',
-      name: 'DE'},
-     {abbreviation: 'fr',
-      description: 'France',
-      name: 'FR'},
-     {abbreviation: 'es',
-      description: 'Spain',
-      name: 'ES'}
-  ]},
-  {abbreviation: 'us',
-   description: 'United States of America',
-   name: 'US'}
-]
-
-# Create the region. If it has subregions create them and then connect them
-regions.each do |r|
-  srs = r[:sub_regions]
-  r.delete(:sub_regions) unless r[:sub_regions].nil?
-
-  if Region.find_by(abbreviation: r[:abbreviation]).nil?
-    region = Region.create!(r)
-
-    unless srs.nil?
-      srs.each do |sr|
-        if Region.find_by(abbreviation: sr[:abbreviation]).nil?
-          sr[:super_region] = region
-          Region.create!((sr))
-        end
-      end
-    end
-
-  end
-end
-
-# Perms
-# -------------------------------------------------------
-perms = [
-  {name: 'add_organisations'},
-  {name: 'change_org_affiliation'},
-  {name: 'grant_permissions'},
-  {name: 'modify_templates'},
-  {name: 'modify_guidance'},
-  {name: 'use_api'},
-  {name: 'change_org_details'},
-  {name: 'grant_api_to_orgs'}
-]
-
-perms.map{ |p| create(:perm, p) }
-
-# Guidance Themes
-# -------------------------------------------------------
-themes = [
-  {title: 'Data Description'},
-  {title: 'Data Format'},
-  {title: 'Data Volume'},
-  {title: 'Data Collection'},
-  {title: 'Metadata & Documentation'},
-  {title: 'Ethics & Privacy'},
-  {title: 'Intellectual Property Rights'},
-  {title: 'Storage & Security'},
-  {title: 'Data Sharing'},
-  {title: 'Data Repository'},
-  {title: 'Preservation'},
-  {title: 'Roles & Responsibilities'},
-  {title: 'Budget'},
-  {title: 'Related Policies'}
-]
-themes.map{ |t| create(:theme, t) }
-
-# Token Permission Types
-# -------------------------------------------------------
-token_permission_types = [
-  {token_type: 'guidances', text_description: 'allows a user access to the guidances api endpoint'},
-  {token_type: 'plans', text_description: 'allows a user access to the plans api endpoint'},
-  {token_type: 'templates', text_description: 'allows a user access to the templates api endpoint'},
-  {token_type: 'statistics', text_description: 'allows a user access to the statistics api endpoint'}
-]
-token_permission_types.map{ |tpt| create(:token_permission_type, tpt) }
-
-# Create our generic organisation, a funder and a University
-# -------------------------------------------------------
-orgs = [
-  {name: Branding.fetch(:organisation, :name),
-   abbreviation: Branding.fetch(:organisation, :abbreviation),
-   org_type: 4, links: {"org":[]},
-   language: Language.find_by(abbreviation: 'en-GB'),
-   token_permission_types: TokenPermissionType.all},
-  {name: 'Government Agency',
-   abbreviation: 'GA',
-   org_type: 2, links: {"org":[]},
-   language: Language.find_by(abbreviation: 'en-GB')},
-  {name: 'University of Exampleland',
-   abbreviation: 'UOS',
-   org_type: 1, links: {"org":[]},
-   language: Language.find_by(abbreviation: 'en-GB')}
-]
-orgs.map{ |o| create(:org, o) }
-
-# Create a Super Admin associated with our generic organisation,
-# an Org Admin for our funder and an Org Admin and User for our University
-# -------------------------------------------------------
-users = [
-  {email: "super_admin@example.com",
-   firstname: "Super",
-   surname: "Admin",
-   password: "password123",
-   password_confirmation: "password123",
-   org: Org.find_by(abbreviation: Branding.fetch(:organisation, :abbreviation)),
-   language: Language.find_by(abbreviation: FastGettext.locale),
-   perms: Perm.all,
-   accept_terms: true,
-   api_token: 'abcd1234',
-   confirmed_at: Time.zone.now},
-  {email: "funder_admin@example.com",
-   firstname: "Funder",
-   surname: "Admin",
-   password: "password123",
-   password_confirmation: "password123",
-   org: Org.find_by(abbreviation: 'GA'),
-   language: Language.find_by(abbreviation: FastGettext.locale),
-   perms: Perm.where.not(name: ['admin', 'add_organisations', 'change_org_affiliation', 'grant_api_to_orgs']),
-   accept_terms: true,
-   api_token: 'efgh5678',
-   confirmed_at: Time.zone.now},
-  {email: "org_admin@example.com",
-   firstname: "Organisational",
-   surname: "Admin",
-   password: "password123",
-   password_confirmation: "password123",
-   org: Org.find_by(abbreviation: 'UOS'),
-   language: Language.find_by(abbreviation: FastGettext.locale),
-   perms: Perm.where.not(name: ['admin', 'add_organisations', 'change_org_affiliation', 'grant_api_to_orgs']),
-   accept_terms: true,
-   api_token: 'ijkl9012',
-   confirmed_at: Time.zone.now},
-  {email: "org_user@example.com",
-   firstname: "Organisational",
-   surname: "User",
-   password: "password123",
-   password_confirmation: "password123",
-   org: Org.find_by(abbreviation: 'UOS'),
-   language: Language.find_by(abbreviation: FastGettext.locale),
-   accept_terms: true,
-   confirmed_at: Time.zone.now}
-]
-users.map{ |u| create(:user, u) }
-
-# Create a Guidance Group for our organisation and the funder
-# -------------------------------------------------------
-guidance_groups = [
-  {name: "Generic Guidance (provided by the example curation centre)",
-   org: Org.find_by(abbreviation: Rails.configuration.branding[:organisation][:abbreviation]),
-   optional_subset: true,
-   published: true},
-  {name: "Government Agency Advice (Funder specific guidance)",
-   org: Org.find_by(abbreviation: 'GA'),
-   optional_subset: false,
-   published: true}
-]
-guidance_groups.map{ |gg| create(:guidance_group, gg) }
-
-# Initialize with the generic Roadmap guidance and a sample funder guidance
-# -------------------------------------------------------
-guidances = [
-  {text: "● Give a summary of the data you will collect or create, noting the content, coverage and data type, e.g., tabular data, survey data, experimental measurements, models, software, audiovisual data, physical samples, etc.
-● Consider how your data could complement and integrate with existing data, or whether there are any existing data or methods that you could reuse.
-● If purchasing or reusing existing data, explain how issues such as copyright and IPR have been addressed. You should aim to m
-inimise any restrictions on the reuse (and subsequent sharing) of third-party data.",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Description')]},
-  {text: "● Clearly note what format(s) your data will be in, e.g., plain text (.txt), comma-separated values (.csv), geo-referenced TIFF (.tif, .tfw).
-● Explain why you have chosen certain formats. Decisions may be based on staff expertise, a preference for open formats, the standards accepted by data centres or widespread usage within a given community.
-● Using standardised, interchangeable or open formats ensures the long-term usability of data; these are recommended for sharing and archiving.
-● See <a href='https://www.ukdataservice.ac.uk/manage-data/format/recommended-formats' title='UK Data Service guidance on recommended formats'>UK Data Service guidance on recommended formats</a> or <a href='https://www.dataone.org/best-practices/document-and-store-data-using-stable-file-formats' title='DataONE Best Practices for file formats'>DataONE Best Practices for file formats</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Format')]},
-  {text: "● Note what volume of data you will create in MB/GB/TB
-● Consider the implications of data volumes in terms of storage, access and preservation. Do you need to include additional costs?
-● Consider whether the scale of the data will pose challenges when sharing or transferring data between sites; if so, how will you address these challenges?",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Volume')]},
-  {text: "● Outline how the data will be collected and processed. This should cover relevant standards or methods, quality assurance and data organisation.
-● Indicate how the data will be organised during the project, mentioning, e.g., naming conventions, version control and folder structures. Consistent, well-ordered research data will be easier to find, understand and reuse
-● Explain how the consistency and quality of data collection will be controlled and documented. This may include processes such as calibration, repeat samples or measurements, standardised data capture, data entry validation, peer review of data or representation with controlled vocabularies.
-● See the <a href='https://www.dataone.org/best-practices/quality' title='DataOne Best Practices for data quality'>DataOne Best Practices for data quality</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Collection')]},
-  {text: "● What metadata will be provided to help others identify and discover the data?
-● Researchers are strongly encouraged to use community metadata standards where these are in place. The Research Data Alliance offers a <a href='http://rd-alliance.github.io/metadata-directory' title='Directory of Metadata Standards'>Directory of Metadata Standards</a>.
-● Consider what other documentation is needed to enable reuse. This may include information on the methodology used to collect the data, analytical and procedural information, definitions of variables, units of measurement, any assumptions made, the format and file type of the data and software used to collect and/or process the data.
-● Consider how you will capture this information and where it will be recorded, e.g., in a database with links to each item, in a ‘readme’ text file, in file headers, etc. ",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Metadata & Documentation')]},
-  {text: "● Investigators carrying out research involving human participants should request consent to preserve and share the data. Do not just ask for permission to use the data in your study or make unnecessary promises to delete it at the end.
-● Consider how you will protect the identity of participants, e.g., via anonymisation or using managed access procedures.
-● Ethical issues may affect how you store and transfer data, who can see/use it and how long it is kept. You should demonstrate that you are aware of this and have planned accordingly.
-● See <a href='https://www.ukdataservice.ac.uk/manage-data/legal-ethical/consent-data-sharing' title='UK Data Service guidance on consent for data sharing'>UK Data Service guidance on consent for data sharing</a>
-● See <a href='http://www.icpsr.umich.edu/icpsrweb/content/datamanagement/confidentiality/index.html' title='ICPSR approach to confidentiality'>ICPSR approach to confidentiality</a> and Health Insurance Portability and Accountability Act <a href='https://privacyruleandresearch.nih.gov/' title='(HIPAA) regulations for health research'>(HIPAA) regulations for health research</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Ethics & Privacy')]},
-  {text: "● State who will own the copyright and IPR of any new data that you will generate. For multi-partner projects, IPR ownership should be covered in the consortium agreement.
-● Outline any restrictions needed on data sharing, e.g., to protect proprietary or patentable data.
-● Explain how the data will be licensed for reuse. See the <a href='http://www.dcc.ac.uk/resources/how-guides/license-research-data' title='DCC guide on How to license research data'>DCC guide on How to license research data</a> and <a href='https://ufal.github.io/public-license-selector' title='EUDAT’s data and software licensing wizard'>EUDAT’s data and software licensing wizard</a>.",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Intellectual Property Rights')]},
-  {text: "● Describe where the data will be stored and backed up during the course of research activities. This may vary if you are doing fieldwork or working across multiple sites so explain each procedure.
-● Identify who will be responsible for backup and how often this will be performed. The use of robust, managed storage with automatic backup, for example, that provided by university IT teams, is preferable. Storing data on laptops, computer hard drives or external storage devices alone is very risky.
-● See <a href='https://www.ukdataservice.ac.uk/manage-data/store' title='UK Data Service Guidance on data storage'>UK Data Service Guidance on data storage</a> or <a href='https://www.dataone.org/best-practices/storage' title='DataONE Best Practices for storage'>DataONE Best Practices for storage</a>
-● Also consider data security, particularly if your data is sensitive e.g., detailed personal data, politically sensitive information or trade secrets. Note the main risks and how these will be managed.
-● Identify any formal standards that you will comply with, e.g., ISO 27001. See the <a href='http://www.dcc.ac.uk/resources/briefing-papers/standards-watch-papers/information-security-management-iso-27000-iso-27k-s' title='DCC Briefing Paper on Information Security Management -ISO 27000'>DCC Briefing Paper on Information Security Management -ISO 27000</a> and <a href='https://www.ukdataservice.ac.uk/manage-data/store/security' title='UK Data Service guidance on data security'>UK Data Service guidance on data security</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Storage & Security')]},
-  {text: "● How will you share the data e.g. deposit in a data repository, use a secure data service, handle data requests directly or use another mechanism? The methods used will depend on a number of factors such as the type, size, complexity and sensitivity of the data.
-● When will you make the data available? Research funders expect timely release. They typically allow embargoes but not prolonged exclusive use.
-● Who will be able to use your data? If you need to restricted access to certain communities or apply data sharing agreements, explain why.
-● Consider strategies to minimise restrictions on sharing. These may include anonymising or aggregating data, gaining participant consent for data sharing, gaining copyright permissions, and agreeing a limited embargo period.
-● How might your data be reused in other contexts? Where there is potential for reuse, you should use standards and formats that facilitate this, and ensure that appropriate metadata is available online so your data can be discovered. Persistent identifiers should be applied so people can reliably and efficiently find your data. They also help you to track citations and reuse.",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Sharing')]},
-  {text: "● Where will the data be deposited? If you do not propose to use an established repository, the data management plan should demonstrate that the data can be curated effectively beyond the lifetime of the grant.
-● It helps to show that you have consulted with the repository to understand their policies and procedures, including any metadata standards.
-● An international list of data repositories is available via <a href='http://www.re3data.org/' title='Re3data'>Re3data</a> and some universities or publishers provide lists of recommendations e.g. <a href='http://journals.plos.org/plosone/s/data-availability#loc-recommended-repositories' title='PLOS ONE recommended repositories'>PLOS ONE recommended repositories</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Repository')]},
-  {text: "● Indicate which data are of long-term value and should be shared and/or preserved.
-● Outline the plans for data sharing and preservation - how long will the data be retained and where will it be archived?
-● Will additional resources be needed to prepare data for deposit or meet any charges from data repositories? See the DCC guide: <a href='http://www.dcc.ac.uk/resources/how-guides/appraise-select-data' title='How to appraise and select research data for curation'>How to appraise and select research data for curation</a> or DataONE Best Practices: <a href='https://www.dataone.org/best-practices/identify-data-long-term-value' title='Identifying data with long-term value'>Identifying data with long-term value</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Preservation')]},
-  {text: "● Outline the roles and responsibilities for all activities, e.g., data capture, metadata production, data quality, storage and backup, data archiving & data sharing. Individuals should be named where possible.
-● For collaborative projects you should explain the coordination of data management responsibilities across partners.
-● See UK Data Service guidance on <a href='https://www.ukdataservice.ac.uk/manage-data/plan/roles-and-responsibilities' title='data management roles and responsibilities'>data management roles and responsibilities</a> or DataONE Best Practices: <a href='https://www.dataone.org/best-practices/define-roles-and-assign-responsibilities-data-management' title='Define roles and assign responsibilities for data management'>Define roles and assign responsibilities for data management</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Roles & Responsibilities')]},
-  {text: "● Carefully consider and justify any resources needed to deliver the plan.  These may include storage costs, hardware, staff time, costs of preparing data for deposit and repository charges.
-● Outline any relevant technical expertise, support and training that is likely to be required and how it will be acquired.
-● If you are not depositing in a data repository, ensure you have appropriate resources and systems in place to share and preserve the data. See UK Data Service guidance on <a href='https://www.ukdataservice.ac.uk/manage-data/plan/costing' title='costing data management'>costing data management</a>",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Budget')]},
-  {text: "● Consider whether there are any existing procedures that you can base your approach on. If your group/department has local guidelines that you work to, point to them here.
-● List any other relevant funder, institutional, departmental or group policies on data management, data sharing and data security. ",
-   guidance_group: GuidanceGroup.first,
-   published: true,
-   themes: [Theme.find_by(title: 'Related Policies')]},
-  {text: "Please tell us how much data you plan to collect and what format it will be in once its deposited.",
-   guidance_group: GuidanceGroup.last,
-   published: true,
-   themes: [Theme.find_by(title: 'Data Description')]}
-]
-guidances.map{ |g| create(:guidance, g) }
-
-# Create a default template for the curation centre and one for the example funder
-# -------------------------------------------------------
-templates = [
-  {title: "My Curation Center's Default Template",
-   description: "The default template",
-   published: true,
-   org: Org.find_by(abbreviation: Rails.configuration.branding[:organisation][:abbreviation]),
-   is_default: true,
-   version: 0,
-   visibility: Template.visibilities[:publicly_visible],
-   links: {"funder":[],"sample_plan":[]}},
-
-  {title: "OLD - Department of Testing Award",
-   published: false,
-   org: Org.find_by(abbreviation: 'GA'),
-   is_default: false,
-   version: 0,
-   visibility: Template.visibilities[:organisationally_visible],
-   links: {"funder":[],"sample_plan":[]}},
-
-  {title: "Department of Testing Award",
-   published: true,
-   org: Org.find_by(abbreviation: 'GA'),
-   is_default: false,
-   version: 0,
-   visibility: Template.visibilities[:organisationally_visible],
-   links: {"funder":[],"sample_plan":[]}}
-]
-# Template creation calls defaults handler which sets is_default and
-# published to false automatically, so update them after creation
-templates.each { |atts| create(:template, atts) }
-
-# Create 2 phases for the funder's template and one for our generic template
-# -------------------------------------------------------
-phases = [
-  {title: "Generic Data Management Planning Template",
-   number: 1,
-   modifiable: false,
-   template: Template.find_by(title: "My Curation Center's Default Template")},
-
-  {title: "Detailed Overview",
-    number: 1,
-    modifiable: false,
-    template: Template.find_by(title: "OLD - Department of Testing Award")},
-
-  {title: "Preliminary Statement of Work",
-   number: 1,
-   modifiable: true,
-   template: Template.find_by(title: "Department of Testing Award")},
-  {title: "Detailed Overview",
-   number: 2,
-   modifiable: false,
-   template: Template.find_by(title: "Department of Testing Award")}
-]
-phases.map{ |p| create(:phase, p) }
-
-generic_template_phase_1 = Phase.find_by(title: "Generic Data Management Planning Template")
-funder_template_phase_1  = Phase.find_by(title: "Preliminary Statement of Work")
-funder_template_phase_2  = Phase.find_by(title: "Detailed Overview")
-
-# Create sections for the 2 templates and their phases
-# -------------------------------------------------------
-sections = [
-  # Sections for the Generic Template
-  {title: "Data Collection",
-   number: 1,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Documentation and Metadata",
-   number: 2,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Ethics and Legal Compliance",
-   number: 3,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Storage and Backup",
-   number: 4,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Selection and Preservation",
-   number: 5,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Data Sharing",
-   number: 6,
-   modifiable: false,
-   phase: generic_template_phase_1},
-  {title: "Responsibilities and Resources",
-   number: 7,
-   modifiable: false,
-   phase: generic_template_phase_1},
-
-  # Section of old version of Funder Template
-  {title: "Data Collection and Preservation",
-   number: 11,
-   modifiable: true,
-   phase: Phase.find_by(title: "Detailed Overview")},
-
-  # Sections for the Funder Template's Preliminary Phase
-  {title: "Data Overview",
-   number: 1,
-   modifiable: true,
-   phase: funder_template_phase_1},
-  {title: "Data Description",
-   number: 2,
-   modifiable: true,
-   phase: funder_template_phase_1},
-
-  # Sections for the Funder Template's Detailed Phase
-  {title: "Preservation Policy",
-   number: 1,
-   modifiable: false,
-   phase: funder_template_phase_2},
-  {title: "Data Format and Storage",
-   number: 2,
-   modifiable: false,
-   phase: funder_template_phase_2},
-  {title: "Collection Process",
-   number: 3,
-   modifiable: false,
-   phase: funder_template_phase_2},
-  {
-    title: "Ethical Standards",
-   number: 4,
-   modifiable: false,
-   phase: funder_template_phase_2
-  },
-  {
-    title: "Preservation and Reuse Policies",
-    number: 5,
-    modifiable: false,
-    phase: funder_template_phase_2
-  }
-]
-sections.map{ |s| create(:section, s) }
-
-text_area = QuestionFormat.find_by(title: "Text area")
-
-# Create questions for the 2 templates and their phases
-# -------------------------------------------------------
-questions = [
-  # Questions for the Generic Template
-  {text: "What data will you collect or create?",
-   number: 1,
-   section: Section.find_by(title: "Data Collection"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Data Description")]},
-  {text: "How will the data be collected or created?",
-   number: 2,
-   section: Section.find_by(title: "Data Collection"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Data Collection")]},
-  {text: "What documentation and metadata will accompany the data?",
-   number: 1,
-   section: Section.find_by(title: "Documentation and Metadata"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Metadata & Documentation")]},
-  {text: "How will you manage any ethical issues?",
-   number: 1,
-   section: Section.find_by(title: "Ethics and Legal Compliance"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Ethics & Privacy")]},
-  {text: "How will you manage copyright and Intellectual Property Rights (IPR) issues?",
-   number: 2,
-   section: Section.find_by(title: "Ethics and Legal Compliance"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Intellectual Property Rights")]},
-  {text: "How will the data be stored and backed up during the research?",
-   number: 1,
-   section: Section.find_by(title: "Storage and Backup"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Storage & Security")]},
-  {text: "How will you manage access and security?",
-   number: 2,
-   section: Section.find_by(title: "Storage and Backup"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Storage & Security")]},
-  {text: "Which data are of long-term value and should be retained, shared, and/or preserved?",
-   number: 1,
-   section: Section.find_by(title: "Selection and Preservation"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Preservation")]},
-  {text: "What is the long-term preservation plan for the dataset?",
-   number: 2,
-   section: Section.find_by(title: "Selection and Preservation"),
-   question_format: text_area,
-   modifiable: false},
-  {text: "How will you share the data?",
-   number: 1,
-   section: Section.find_by(title: "Data Sharing"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Data Sharing")]},
-  {text: "Are any restrictions on data sharing required?",
-   number: 2,
-   section: Section.find_by(title: "Data Sharing"),
-   question_format: text_area,
-   modifiable: false},
-  {text: "Who will be responsible for data management?",
-   number: 1,
-   section: Section.find_by(title: "Responsibilities and Resources"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Roles & Responsibilities")]},
-  {text: "What resources will you require to deliver your plan?",
-   number: 2,
-   modifiable: false,
-   section: Section.find_by(title: "Responsibilities and Resources"),
-   question_format: text_area},
-
-  # Questions for old version of Funder Template
-  {text: "What data will you collect and how will it be obtained?",
-   number: 1,
-   modifiable: false,
-   section: Section.find_by(title: "Data Collection and Preservation"),
-   question_format: text_area},
-  {text: "How will you preserve your data during the project and long-term?",
-   number: 2,
-   modifiable: false,
-   section: Section.find_by(title: "Data Collection and Preservation"),
-   question_format: text_area},
-
-  # Questions for the Funder Template's Preliminary Phase
-  {text: "Provide an overview of the dataset.",
-   number: 1,
-   section: Section.find_by(title: "Data Overview"),
-   question_format: text_area,
-   modifiable: true,
-   themes: [Theme.find_by(title: "Data Description")]},
-  {text: "What types/formats of data will you collect?",
-   number: 1,
-   modifiable: true,
-   section: Section.find_by(title: "Data Description"),
-   question_format: text_area,
-   themes: [Theme.find_by(title: "Data Format")]},
-  {text: "How will you store the data and how will it be preserved?",
-   number: 2,
-   modifiable: true,
-   section: Section.find_by(title: "Data Description"),
-   question_format: text_area,
-   themes: [Theme.find_by(title: "Data Collection")]},
-
-  # Questions for the Funder Template's Detailed Phase
-  {text: "What is your policy for long term access to your dataset?",
-   number: 1,
-   section: Section.find_by(title: "Preservation Policy"),
-   question_format: text_area,
-   modifiable: false,
-   default_value: "Please enter your answer here ..." ,
-   themes: [Theme.find_by(title: "Preservation")]},
-  {text: "Where will your data be preserved?",
-   number: 2,
-   section: Section.find_by(title: "Preservation Policy"),
-   question_format: QuestionFormat.find_by(title: "Text field"),
-   modifiable: false,
-   default_value: "on a server at my institution",
-   themes: [Theme.find_by(title: "Preservation")]},
-  {text: "What types of data will you collect and how will it be stored?",
-   number: 1,
-   section: Section.find_by(title: "Data Format and Storage"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Storage & Security"), Theme.find_by(title: 'Data Format')]},
-  {text: "What are your institution's ethical policies?",
-   number: 1,
-   section: Section.find_by(title: "Ethical Standards"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Ethics & Privacy")]},
-  {text: "When will your data be available for public consumption?",
-   number: 2,
-   section: Section.find_by(title: "Ethical Standards"),
-   question_format: QuestionFormat.find_by(title: "Date"),
-   modifiable: false,
-   themes: [Theme.find_by(title: "Ethics & Privacy")]},
-  {text: "Tell us about your departmental and institutional policies on reuse and preservation.",
-   number: 1,
-   section: Section.find_by(title: "Preservation and Reuse Policies"),
-   question_format: text_area,
-   modifiable: false,
-   themes: [Theme.find_by(title: "Preservation"), Theme.find_by(title: "Data Sharing")]}
-]
-questions.map{ |q| create(:question, q) }
-
-radio_button = Question.new(
-    text: "Please select the appropriate formats.",
-    number: 2,
-    section: Section.find_by(title: "Data Format and Storage"),
-    question_format: QuestionFormat.find_by(title: "Radio buttons"),
-    modifiable: false,
-    themes: [Theme.find_by(title: "Storage & Security"), Theme.find_by(title: 'Data Format')])
-radio_button.question_options.build([
-  {
-    text: "csv files",
-    number: 1,
-    is_default: false
-  },
-  {
-    text: "database (e.g. mysql, redis)",
-    number: 2,
-    is_default: false
-  },
-  {
-    text: "archive files (e.g. tar, zip)",
-    number: 3,
-    is_default: false
-  }])
-radio_button.save!
-
-checkbox = Question.new(
-    text: "Will software accompany your dataset?",
-    number: 1,
-    section: Section.find_by(title: "Collection Process"),
-    question_format: QuestionFormat.find_by(title: "Check box"),
-    modifiable: false,
-    themes: [Theme.find_by(title: "Data Collection")])
-checkbox.question_options.build([
-  {
-    text: "local hard drive",
-    number: 1,
-    is_default: true
-  },
-  {
-    text: "personal cloud storage",
-    number: 2,
-    is_default: false
-  },
-  {
-    text: "institutional servers",
-    number: 3,
-    is_default: false
-  }])
-checkbox.save!
-
-dropdown = Question.new(
-    text: "Where will you store your data during the research period?",
-    number: 2,
-    section: Section.find_by(title: "Collection Process"),
-    question_format: QuestionFormat.find_by(title: "Dropdown"),
-    modifiable: false,
-    themes: [Theme.find_by(title: "Data Collection")])
-dropdown.question_options.build([
-  {
-    text: "In a database",
-    number: 1,
-    is_default: false
-  },
-  {
-    text: "In a pendrive",
-    number: 2,
-    is_default: false
-  }])
-dropdown.save!
-
-multi_select_box = Question.new(
-    text: "What type(s) of data will you collect?",
-    number: 3,
-    section: Section.find_by(title: "Collection Process"),
-    question_format: QuestionFormat.find_by(title: "Multi select box"),
-    option_comment_display: true,
-    modifiable: false,
-    themes: [Theme.find_by(title: "Data Collection")])
-multi_select_box.question_options.build([
-  {
-    text: "statistical",
-    number: 1,
-    is_default: false
-  },
-  {
-    text: "image/video",
-    number: 2,
-    is_default: false
-  },
-  {
-    text: "geographical",
-    number: 3,
-    is_default: false
-  },
-  {
-    text: "other",
-    number: 4,
-    is_default: false
-  }])
-multi_select_box.save!
-
-# Create suggested answers for a few questions
-# -------------------------------------------------------
-annotations = [
-  {text: "We will preserve it in Dryad or a similar data repository service.",
-   type: Annotation.types[:example_answer],
-   org: Org.find_by(abbreviation: 'GA'),
-   question: Question.find_by(text: "What is your policy for long term access to your dataset?")},
-  {text: "We recommend that you identify the type(s) of content as well as the type of file(s) involved",
-   type: Annotation.types[:example_answer],
-   org: Org.find_by(abbreviation: 'GA'),
-   question: Question.find_by(text: "What types of data will you collect and how will it be stored?")},
-]
-annotations.map{ |s| Annotation.create!(s) if Annotation.find_by(text: s[:text]).nil? }
+ActiveRecord::SessionStore::Session.create!([
+  {session_id: "3da3dac0bf7f18db40913d7ae7758e13", data: "BAh7CUkiEXByZXZpb3VzX3VybAY6BkVGIjQvb3JnX2FkbWluL3RlbXBsYXRl\ncy83L3BoYXNlcy83L2VkaXQ/c2VjdGlvbj0xOEkiC2xvY2FsZQY7AEZJIgpl\nbi1HQgY7AFRJIhl3YXJkZW4udXNlci51c2VyLmtleQY7AFRbB1sGaQpJIiIk\nMmEkMDQkY2lVakJuQnJiNkpudHhtTnhDeWtVZQY7AFRJIgpmbGFzaAY7AFR7\nB0kiDGRpc2NhcmQGOwBUWwZJIgtub3RpY2UGOwBGSSIMZmxhc2hlcwY7AFR7\nBkASSSInU3VjY2Vzc2Z1bGx5IGNyZWF0ZWQgdGhlIHF1ZXN0aW9uLgY7AFQ=\n"},
+  {session_id: "04abc976e6813bf8874b096819b2b2c6", data: "BAh7CEkiEXByZXZpb3VzX3VybAY6BkVGIh8vcGxhbnMvMTIvZWRpdD9waGFz\nZV9pZD0xMkkiC2xvY2FsZQY7AEZJIgplbi1HQgY7AFRJIhl3YXJkZW4udXNl\nci51c2VyLmtleQY7AFRbB1sGaQpJIiIkMmEkMDQkY2lVakJuQnJiNkpudHht\nTnhDeWtVZQY7AFQ=\n"}
+])
+Language.create!([
+  {abbreviation: "en-GB", description: "", name: "English (GB)", default_language: true},
+  {abbreviation: "en-US", description: "", name: "English (US)", default_language: false},
+  {abbreviation: "fr", description: "", name: "Français", default_language: false},
+  {abbreviation: "de", description: "", name: "Deutsch", default_language: false},
+  {abbreviation: "es", description: "", name: "Español", default_language: false},
+  {abbreviation: "fr-FR", description: "fr-FR", name: "fr-FR", default_language: false},
+  {abbreviation: "fi", description: "fi", name: "fi", default_language: false},
+  {abbreviation: "fr-CA", description: "fr-CA", name: "fr-CA", default_language: false},
+  {abbreviation: "ja", description: "ja", name: "ja", default_language: false},
+  {abbreviation: "ro", description: "ro", name: "ro", default_language: false},
+  {abbreviation: "el", description: "el", name: "el", default_language: false},
+  {abbreviation: "pt-BR", description: "pt-BR", name: "pt-BR", default_language: false},
+  {abbreviation: "sv-FI", description: "sv-FI", name: "sv-FI", default_language: false}
+])
+User.create!([
+  {firstname: "Thomas", surname: "Vandenberghe", email: "tvandenberghe@naturalsciences.be", encrypted_password: "$2a$04$ciUjBnBrb6JntxmNxCykUeBKv36.iW7nKR34MuUaVvSf9Dbf8x31y", reset_password_token: nil, reset_password_sent_at: nil, remember_created_at: nil, sign_in_count: 2, current_sign_in_at: "2019-04-18 07:55:54", last_sign_in_at: "2019-04-11 14:48:12", current_sign_in_ip: "127.0.0.1", last_sign_in_ip: "127.0.0.1", confirmation_token: nil, confirmed_at: nil, confirmation_sent_at: nil, invitation_token: nil, invitation_created_at: nil, invitation_sent_at: nil, invitation_accepted_at: nil, other_organisation: nil, accept_terms: true, org_id: 7, api_token: nil, invited_by_id: nil, invited_by_type: nil, language_id: 1, recovery_email: nil, active: true}
+])
+User::HABTM_Perms.create!([
+  {user_id: 5, perm_id: 1},
+  {user_id: 5, perm_id: 2},
+  {user_id: 5, perm_id: 3},
+  {user_id: 5, perm_id: 4},
+  {user_id: 5, perm_id: 5},
+  {user_id: 5, perm_id: 6},
+  {user_id: 5, perm_id: 7},
+  {user_id: 5, perm_id: 8}
+])
+IdentifierScheme.create!([
+  {name: "orcid", description: "ORCID", active: true, logo_url: "http://orcid.org/sites/default/files/images/orcid_16x16.png", user_landing_url: "https://orcid.org"},
+  {name: "shibboleth", description: "Your institutional credentials", active: true, logo_url: "http://newsite.shibboleth.net/wp-content/uploads/2017/01/Shibboleth-logo_2000x1200-1.png", user_landing_url: "https://example.com"}
+])
+Annotation.create!([
+  {question_id: 36, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">'Metadata' is considered 'data about data'. In this context it represents 'information about datasets'. Metadata should take into account the following elements:</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Title</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Abstract</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Lineage: </span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Different basic steps that have been performed to the raw data in order to help the interpretation by others users (e.g. statistical analysis, geographical modification,...): global origin, simple categorization of sampling devices, previous file formats the data had, specific steps and transformations taken to clean, compile and present the data. Relations with other data sets.</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Language(s) used in the data</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Format(s): file formats</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Creation date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Latest revision date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Author of the dataset</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Full name of the organization</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Name of the responsible person</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Email address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">City</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Country</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Website</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Geographic area: named area </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Coordinate Reference System (CRS): WGS 84, ETRS89,...</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Spatial Extent (Bounding Box): The spatial coordinates of the widest geographical extent (westBoundLongitude, eastBoundLongitude, southBoundLatitude, northBoundLatitude)</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Temporal Extent: start and stop date of the collection points</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Taxonomic coverage: The taxa (use appropriate levels like families, orders or classes) this dataset contains </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Limitations for data using: E.g. not for navigation purposes, provided without liability, sensitive information withheld&hellip;</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Conditions for data sharing: licen</span></span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">ses, embargoes</span></span></span></span></span></p>\r\n</li>\r\n</ul>", type: 1, versionable_id: "8f3e9857-1624-4f08-a544-a646a651f863"},
+  {question_id: 42, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Horizon 2020 wants to stimulate openly accessible data, with maximal reusability. In order to facilitate this, open, up-front and machine readable licenses are preferred, </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">such as those on https://</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">creativecommons.org</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">/licenses.</span></span></span></p>\r\n<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Furthermore, w</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">e want to highlight that EurofleetsPlus </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">data </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">must be </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">open </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as possible, which means that the CC0 (public domain) license is the most appropriate.</span></span></span></p>", type: 1, versionable_id: "a7d726be-b485-43e5-b94c-139bb721002d"},
+  {question_id: 51, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">'Metadata' is considered 'data about data'. In this context it represents 'information about datasets'. Metadata should take into account the following elements:</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Title</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Abstract</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Lineage: </span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Different basic steps that have been performed to the raw data in order to help the interpretation by others users (e.g. statistical analysis, geographical modification,...): global origin, simple categorization of sampling devices, previous file formats the data had, specific steps and transformations taken to clean, compile and present the data. Relations with other data sets.</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Language(s) used in the data</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Format(s): file formats</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Creation date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Latest revision date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Author of the dataset</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Full name of the organization</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Name of the responsible person</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Email address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">City</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Country</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Website</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Geographic area: named area </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Coordinate Reference System (CRS): WGS 84, ETRS89,...</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Spatial Extent (Bounding Box): The spatial coordinates of the widest geographical extent (westBoundLongitude, eastBoundLongitude, southBoundLatitude, northBoundLatitude)</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Temporal Extent: start and stop date of the collection points</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Taxonomic coverage: The taxa (use appropriate levels like families, orders or classes) this dataset contains </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Limitations for data using: E.g. not for navigation purposes, provided without liability, sensitive information withheld&hellip;</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Conditions for data sharing: licen</span></span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">ses, embargoes</span></span></span></span></span></p>\r\n</li>\r\n</ul>", type: 1, versionable_id: "8f3e9857-1624-4f08-a544-a646a651f863"},
+  {question_id: 57, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Horizon 2020 wants to stimulate openly accessible data, with maximal reusability. In order to facilitate this, open, up-front and machine readable licenses are preferred, </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">such as those on https://</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">creativecommons.org</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">/licenses.</span></span></span></p>\r\n<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Furthermore, w</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">e want to highlight that EurofleetsPlus </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">data </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">must be </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">open </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as possible, which means that the CC0 (public domain) license is the most appropriate.</span></span></span></p>", type: 1, versionable_id: "a7d726be-b485-43e5-b94c-139bb721002d"},
+  {question_id: 62, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">'Metadata' is considered 'data about data'. In this context it represents 'information about datasets'. Metadata should take into account the following elements:</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Title</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Abstract</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Lineage: </span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Different basic steps that have been performed to the raw data in order to help the interpretation by others users (e.g. statistical analysis, geographical modification,...): global origin, simple categorization of sampling devices, previous file formats the data had, specific steps and transformations taken to clean, compile and present the data. Relations with other data sets.</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Language(s) used in the data</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Format(s): file formats</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Creation date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Latest revision date of the dataset</span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Author of the dataset</span></span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Full name of the organization</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Name of the responsible person</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Email address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal address</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">City</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Postal code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Country</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span style=\"font-weight: normal;\">Website</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Geographic area: named area </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Coordinate Reference System (CRS): WGS 84, ETRS89,...</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Spatial Extent (Bounding Box): The spatial coordinates of the widest geographical extent (westBoundLongitude, eastBoundLongitude, southBoundLatitude, northBoundLatitude)</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Temporal Extent: start and stop date of the collection points</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Taxonomic coverage: The taxa (use appropriate levels like families, orders or classes) this dataset contains </span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Limitations for data using: E.g. not for navigation purposes, provided without liability, sensitive information withheld&hellip;</span></span></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"text-decoration: none;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">Conditions for data sharing: licen</span></span></span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-weight: normal;\">ses, embargoes</span></span></span></span></span></p>\r\n</li>\r\n</ul>", type: 1, versionable_id: "8f3e9857-1624-4f08-a544-a646a651f863"},
+  {question_id: 67, org_id: 7, text: "<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Horizon 2020 wants to stimulate openly accessible data, with maximal reusability. In order to facilitate this, open, up-front and machine readable licenses are preferred, </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">such as those on https://</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">creativecommons.org</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">/licenses.</span></span></span></p>\r\n<p lang=\"en-GB\" style=\"margin-left: 1cm; margin-bottom: 0.26cm; font-weight: normal; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Furthermore, w</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">e want to highlight that EurofleetsPlus </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">data </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">must be </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">open </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">as possible, which means that the CC0 (public domain) license is the most appropriate.</span></span></span></p>", type: 1, versionable_id: "a7d726be-b485-43e5-b94c-139bb721002d"}
+])
+GuidanceGroup.create!([
+  {name: "YRI", org_id: 8, optional_subset: false, published: false},
+  {name: "EurofleetsPlus DMP Guidance", org_id: 7, optional_subset: false, published: false}
+])
+GuidanceGroup::HABTM_Plans.create!([
+  {guidance_group_id: 6, plan_id: 9},
+  {guidance_group_id: 6, plan_id: 10},
+  {guidance_group_id: 6, plan_id: 11}
+])
+Org.create!([
+  {name: "EurofleetsPlus", abbreviation: "EF+", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "tvandenberghe@naturalsciences.be", org_type: 7, links: {"org"=>[{"link"=>"www.eurofleets.eu", "text"=>"Eurofleets website"}]}, contact_name: "tvandenberghe@naturalsciences.be", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil},
+  {name: "Your Research Institute", abbreviation: "YRI", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "blurb@inst.ac.com", org_type: 5, links: {"org"=>[]}, contact_name: "", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil}
+])
+Perm.create!([
+  {name: "add_organisations"},
+  {name: "change_org_affiliation"},
+  {name: "grant_permissions"},
+  {name: "modify_templates"},
+  {name: "modify_guidance"},
+  {name: "use_api"},
+  {name: "change_org_details"},
+  {name: "grant_api_to_orgs"}
+])
+Perm::HABTM_Users.create!([
+  {user_id: 5, perm_id: 1},
+  {user_id: 5, perm_id: 2},
+  {user_id: 5, perm_id: 3},
+  {user_id: 5, perm_id: 4},
+  {user_id: 5, perm_id: 5},
+  {user_id: 5, perm_id: 6},
+  {user_id: 5, perm_id: 7},
+  {user_id: 5, perm_id: 8}
+])
+Phase.create!([
+  {title: "Preparatory DMP", description: "", number: 1, template_id: 7, modifiable: true, versionable_id: "a8e3661e-29bf-431f-b238-4234cd87b057"},
+  {title: "Preparatory DMP", description: "", number: 1, template_id: 8, modifiable: true, versionable_id: "a8e3661e-29bf-431f-b238-4234cd87b057"},
+  {title: "Phase 1: Preparatory DMP", description: "", number: 1, template_id: 9, modifiable: true, versionable_id: "a8e3661e-29bf-431f-b238-4234cd87b057"},
+  {title: "Guidance", description: "<p><strong>General guidelines</strong></p>\r\n<p>The Horizon 2020 Programme asks that the research output of its beneficiaries adheres to the FAIR principle and furthermore, that open access to research data is ensured to a maximal extent. Open access refers to the practice of providing online access to scientific information (publications and research data) that is free of charge to the end-user and reusable. FAIR data is findable, accessible, interoperable and readable.</p>\r\n<p>FAIR data may still be (partially) private, eg. when it is only shared under certain conditions. Open research data is freely available to anyone to access, use and share. Since 2017, open research data is the default option for H2020, while it is still possible to opt-out and select a more closed data model. For general H2020 projects, this may be because you want to protect your data before any publication has taken place, keep intellectual property rights for commercial purposes, or have privacy or security concerns. In summary, any EurofleetsPlus research data must be Findable, Accessible, Interoperable and Reusable for the group of users you as a research cruise principal investigator have defined; this may be anyone, with unrestricted access, in which case your data is considered open data.</p>\r\n<p>Within open data there are gradations, going from fully open (public domain), to legally obliging attribution, to barring commercial re-use etc. A good overview of open licenses can be found on CreativeCommons, <a title=\"https://creativecommons.org/licenses\" href=\"https://creativecommons.org/licenses\">https://creativecommons.org/licenses</a>. A further benefit is that these licenses are ready-for-use, unambiguous (as they already have a legal description), and are machine readable.</p>\r\n<p><strong>The default EurofleetsPlus license for cruise data is the public domain CC0-license, <a title=\"https://creativecommons.org/publicdomain/zero/1.0\" href=\"https://creativecommons.org/publicdomain/zero/1.0\">https://creativecommons.org/publicdomain/zero/1.0</a>, as re-using data should not be made unnecessarily complex.</strong></p>\r\n<p><strong>The metadata of your dataset(s) must be made available as soon as possible after the cruise ends. For the data, a default embargo period of 3 months is granted; you may waive this default period and provide the data earlier. You may extend this period, which must be reported in the DMP. The data should be provided before the end of your specified embargo period and before the next cruise call or the end of the whole EurofleetsPlus project, whichever comes first.</strong></p>\r\n<p>EurofleetsPlus applies the FAIR and Open principles of the H2020 framework on three levels: the EF+ project itself, the JRA research output and the TNA funded cruises. For this reason there will be two Data Management Plan (DMP) types in use: a general one for EurofleetsPlus, and one for each funded cruise, which must use the current document as a template. The DMP for cruises comes in two forms, a preliminary DMP at submission time and a final DMP after the cruise funding has been granted.</p>\r\n<p>We have based ourselves on the Guidelines on FAIR Data Management in Horizon 2020 (<a title=\"http://ec.europa.eu/research/participants/data/ref/h2020/grants_manual/hi/oa_pilot/h2020-hi-oa-data-mgt_en.pdf\" href=\"http://ec.europa.eu/research/participants/data/ref/h2020/grants_manual/hi/oa_pilot/h2020-hi-oa-data-mgt_en.pdf\">http://ec.europa.eu/research/participants/data/ref/h2020/grants_manual/hi/oa_pilot/h2020-hi-oa-data-mgt_en.pdf</a>) to define the template for the DMP. Some of the specifics, for instance those on the timing of any opt-out (see p. 3), make less sense in the EurofleetsPlus context, and are not applicable. Project data may be considered fully open from the start or the grantee may start out with open datasets, and later opt-out some datasets, for a good reason. The only way to opt-in a dataset is by having selected an embargo period (that must be specified at the time of writing the DMP).</p>\r\n<p><strong>For EurofleetsPlus, opting out of open data is possible at the time the preliminary DMP is created or after the project has been granted, at the time the final DMP is submitted, but only for data with a distinct commercialibility, or by extending the embargo period.</strong></p>\r\n<p>Project proposals will be judged on the completeness of the Data Management Plan and on what basis they enable their datasets to become FAIR. The DMP is a living document that follows the research lifecycle and should be updated during the project lifetime, especially after the cruise ended, to reflect any changes to your procedures. A data management plan prerecords the procedures you plan to follow with regards to data management, to ensure that they are actually followed.</p>\r\n<p><strong>Crucial elements like embargoes, opting-out data and licensing must be included as soon as possible in the DMP for the different types of datasets.</strong></p>\r\n<p><em>This document is a Data Management Plan in paper form, and contains a set of guidelines and the actual data management plan in textual form.</em> This document may be used to draft your Data Management Plan. However, as creating a data management plan is a dynamic process and as versioning is difficult to manage using word documents, we use an online DMP tool, called DMP Roadmap. This also facilitates managing a multitude of submissions.</p>\r\n<p><strong>The Data Management Plan (both the preliminary and full DMP) of a cruise proposal MUST be created with DMP Roadmap on the website <a title=\"http://dmp.ef-ears.eu\" href=\"http://dmp.ef-ears.eu\">http://dmp.ef-ears.eu</a> and kept up-to-date after funding.</strong><br /><br />A preliminary DMP is created at the time of the project proposal. This preliminary DMP contains a more limited set of questions. You can leave out details at this stage. After the proposal is granted, the Data Management Plan will have to be completed in full. For this, you need to answer additional questions and extend your existing answers to cover the issues more in-depth. Three reference data management centres, assigned to a funded project, will review your DMP and provide feedback at that stage. The Data Management partners are the Hellenic Centre for Marine Research (HCMR) in Greece, the Istituto Nazionale di Oceanografia e di Geofisica Sperimentale (OGS) in Italy and the Belgian Marine Data Centre (BMDC).</p>\r\n<p>The EurofleetsPlus project will in due time provide the necessary infrastructure to make the data that is gathered during the funded cruises FAIR without any extra infrastructural work on your Institute's part being necessary. The EurofleetsPlus infrastructure takes care of manual data (data originating from specific manual operations like sampling and deployments) and en-route data acquisition (salinity, temperature, depth etc. that are continuously measured). The Data Management Plan should detail the steps you will take to fill in the gaps in between the possibilities offered by the Eurofleets infrastructuren and how you will make use of them. The EurofleetsPlus infrastructure comprises:</p>\r\n<ul style=\"list-style-type: circle;\">\r\n<li>An EurofleetsPlus data sets catalogue (hosted on the EVIOR portal) will be ready around the beginning of July, which should be used to make your datasets findable, upon provision of adequate metadata. This system also provides the possibility to upload your data (data accessibility) after the cruise.</li>\r\n<li>However, this data is not yet ready for interoperability with existing datasets. The reference data centres will make your data available on European oceanographic data repositories (such as SeaDataCloud and EMODNet). This makes them interoperable with the other datasets there, ensuring your dataset's reusablility.</li>\r\n<li>En-route data from your cruise will be standardised by using the Eurofleets Automatic Reporting System (EARS), which also makes en-route data available on the EVIOR portal.</li>\r\n</ul>\r\n<p><strong>Steps</strong></p>\r\n<ol>\r\n<li>Follow the webinar on FAIR, DMPs and DMP Roadmap via <a title=\"http://www.eurofleets.eu\" href=\"http://www.eurofleets.eu\">http://www.eurofleets.eu</a></li>\r\n<li>Prepare your proposal</li>\r\n<li>Create an account on the EF+ DMP Roadmap (<a title=\"http://dmp.ef-ears.eu\" href=\"http://dmp.ef-ears.eu\">http://dmp.ef-ears.eu</a>) and complete the preliminary DMP</li>\r\n<li>Submit your proposal on the official EurofleetsPlus submission website, together with a pdf of the DMP generated from DMP Roadmap</li>\r\n<li>Await confirmation that you are awarded the project</li>\r\n<li>Complete the final DMP on <a title=\"http://dmp.ef-ears.eu\" href=\"http://dmp.ef-ears.eu\">http://dmp.ef-ears.eu</a></li>\r\n<li>Receive additional feedback from the reference data centres on improving the DMP</li>\r\n<li>Participate in the cruise</li>\r\n<li>Provide the metadata of the dataset(s) on the EurofleetsPlus data repository as soon as possible after the cruise</li>\r\n<li>Upload the data to the metadata record within 3 months after the cruise, unless you have specified an embargo period</li>\r\n</ol>", number: 1, template_id: 10, modifiable: true, versionable_id: "5474e2ed-42b3-401c-ae63-d7a43173d072"},
+  {title: "Phase 2: Full DMP", description: "", number: 2, template_id: 9, modifiable: true, versionable_id: "ed4cd2c7-e8a2-4af3-ac38-3877f2ab2ef3"},
+  {title: "Full DMP", description: "", number: 2, template_id: 8, modifiable: true, versionable_id: "ed4cd2c7-e8a2-4af3-ac38-3877f2ab2ef3"},
+  {title: "Phase 1: Preliminary DMP", description: "", number: 2, template_id: 10, modifiable: true, versionable_id: "a8e3661e-29bf-431f-b238-4234cd87b057"},
+  {title: "Phase 2: Full DMP", description: "", number: 3, template_id: 10, modifiable: true, versionable_id: "ed4cd2c7-e8a2-4af3-ac38-3877f2ab2ef3"}
+])
+Plan.create!([
+  {title: "Eurofleets cruise", template_id: 5, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Thomas's Plan", template_id: 5, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets cruise", template_id: 7, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets Cruise", template_id: 8, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets Cruise", template_id: 8, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets cruise", template_id: 9, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets cruise", template_id: 9, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets cruise", template_id: 9, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false},
+  {title: "Eurofleets Cruise", template_id: 10, grant_number: nil, identifier: nil, description: nil, principal_investigator: "Thomas Vandenberghe", principal_investigator_identifier: nil, data_contact: nil, funder_name: "EurofleetsPlus", visibility: 3, data_contact_email: nil, data_contact_phone: nil, principal_investigator_email: "tvandenberghe@naturalsciences.be", principal_investigator_phone: nil, feedback_requested: false, complete: false}
+])
+Plan::HABTM_GuidanceGroups.create!([
+  {guidance_group_id: 6, plan_id: 9},
+  {guidance_group_id: 6, plan_id: 10},
+  {guidance_group_id: 6, plan_id: 11}
+])
+Question.create!([
+  {text: "<span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Before the data is transferred to </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> EurofleetsPlus data repository, what provisions are in place for data security (including data recovery, secure storage and transfer)? </span></span></span>", default_value: "", number: 1, section_id: 45, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "5af24208-136a-483c-8f7a-4a051f3b07c4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What is the purpose of the data collection/generation and its relation to the objectives of the project? </span></span></span></p>", default_value: "", number: 1, section_id: 19, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "4381d4f6-e318-4ab8-8330-47b6d9adafe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Can you list some search keywords? The purpose of keywords is to optimize the findability of the datasets. Best practice is to refer to definitions in standard vocabularies.</span></span></span></p>", default_value: "", number: 1, section_id: 20, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81d48392-fc3f-49d6-8380-48efe968c7e5"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Which data produced and/or used in the project will be made openly available as the default? If certain datasets cannot be shared (or need to be shared under restrictions or embargo), explain why, clearly separating legal and contractual reasons from voluntary restrictions. Do this for each type of dataset you will create.</span></span></span></p>", default_value: "", number: 1, section_id: 21, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d80837b6-624d-4785-a594-372ba810dfe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Please specify how you plan to unambiguously capture and store the specified individual meta-information elements to facilitate </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> reference data centres to connect your information to the definitions in vocabularies in an efficient way.</span></span></span></p>", default_value: "", number: 1, section_id: 22, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "58d1e144-d323-40de-a811-b1427c81dce8"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How will the data be licensed to permit the widest re-use possible? </span></span></span></p>", default_value: "", number: 1, section_id: 23, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "53618692-30d5-484f-bf51-308c65c23d95"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How will the data be licensed to permit the widest re-use possible? </span></span></span></p>", default_value: "", number: 1, section_id: 32, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "53618692-30d5-484f-bf51-308c65c23d95"},
+  {text: "<span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Before the data is transferred to </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> EurofleetsPlus data repository, what provisions are in place for data security (including data recovery, secure storage and transfer)? </span></span></span>", default_value: "", number: 1, section_id: 25, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "5af24208-136a-483c-8f7a-4a051f3b07c4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">On top of the infrastructure and procedures that EurofleetsPlus provides, which national/sectorial/ departmental procedures for data management are you following?</span></span></span></p>", default_value: "", number: 1, section_id: 27, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "c8f71703-21e7-470a-a363-b34ffef7573f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What is the purpose of the data collection/generation and its relation to the objectives of the project? </span></span></span></p>", default_value: "", number: 1, section_id: 28, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "4381d4f6-e318-4ab8-8330-47b6d9adafe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Can you list some search keywords? The purpose of keywords is to optimize the findability of the datasets. Best practice is to refer to definitions in standard vocabularies.</span></span></span></p>", default_value: "", number: 1, section_id: 29, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81d48392-fc3f-49d6-8380-48efe968c7e5"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Which data produced and/or used in the project will be made openly available as the default? If certain datasets cannot be shared (or need to be shared under restrictions or embargo), explain why, clearly separating legal and contractual reasons from voluntary restrictions. Do this for each type of dataset you will create.</span></span></span></p>", default_value: "", number: 1, section_id: 30, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d80837b6-624d-4785-a594-372ba810dfe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Please specify how you plan to unambiguously capture and store the specified individual meta-information elements to facilitate </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> reference data centres to connect your information to the definitions in vocabularies in an efficient way.</span></span></span></p>", default_value: "", number: 1, section_id: 31, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "58d1e144-d323-40de-a811-b1427c81dce8"},
+  {text: "<span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Before the data is transferred to </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> EurofleetsPlus data repository, what provisions are in place for data security (including data recovery, secure storage and transfer)? </span></span></span>", default_value: "", number: 1, section_id: 34, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "5af24208-136a-483c-8f7a-4a051f3b07c4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">On top of the infrastructure and procedures that EurofleetsPlus provides, which national/sectorial/ departmental procedures for data management are you following?</span></span></span></p>", default_value: "", number: 1, section_id: 36, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "c8f71703-21e7-470a-a363-b34ffef7573f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Can you list some search keywords? The purpose of keywords is to optimize the findability of the datasets. Best practice is to refer to definitions in standard vocabularies.</span></span></span></p>", default_value: "", number: 1, section_id: 37, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81d48392-fc3f-49d6-8380-48efe968c7e5"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Which data produced and/or used in the project will be made openly available as the default? If certain datasets cannot be shared (or need to be shared under restrictions or embargo), explain why, clearly separating legal and contractual reasons from voluntary restrictions. Do this for each type of dataset you will create.</span></span></span></p>", default_value: "", number: 1, section_id: 38, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d80837b6-624d-4785-a594-372ba810dfe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Please specify how you plan to unambiguously capture and store the specified individual meta-information elements to facilitate </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> reference data centres to connect your information to the definitions in vocabularies in an efficient way.</span></span></span></p>", default_value: "", number: 1, section_id: 39, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "58d1e144-d323-40de-a811-b1427c81dce8"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How will the data be licensed to permit the widest re-use possible? </span></span></span></p>", default_value: "", number: 1, section_id: 40, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "53618692-30d5-484f-bf51-308c65c23d95"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">On top of the infrastructure and procedures that EurofleetsPlus provides, which national/sectorial/ departmental procedures for data management are you following?</span></span></span></p>", default_value: "", number: 1, section_id: 43, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "c8f71703-21e7-470a-a363-b34ffef7573f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What is the purpose of the data collection/generation and its relation to the objectives of the project? </span></span></span></p>", default_value: "", number: 1, section_id: 44, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "4381d4f6-e318-4ab8-8330-47b6d9adafe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What is the purpose of the data collection/generation and its relation to the objectives of the project? </span></span></span></p>", default_value: "", number: 1, section_id: 18, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "4381d4f6-e318-4ab8-8330-47b6d9adafe4"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What types and formats of data will the project generate/collect? </span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">&nbsp;</span></span></span></p>", default_value: "", number: 2, section_id: 19, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0051cded-1bc8-4c07-bbbe-dbc35d6c3575"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">When will the data be made available for re-use? If an embargo is sought to give time to publish or seek patents, specify why and how long this will apply, bearing in mind that research data should be made available as soon as possible.</span></span></span></p>", default_value: "", number: 2, section_id: 32, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "b64a316c-c65e-494a-8b0a-c30488f88eed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">When will the data be made available for re-use? If an embargo is sought to give time to publish or seek patents, specify why and how long this will apply, bearing in mind that research data should be made available as soon as possible.</span></span></span></p>", default_value: "", number: 2, section_id: 40, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "b64a316c-c65e-494a-8b0a-c30488f88eed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">When will the data be made available for re-use? If an embargo is sought to give time to publish or seek patents, specify why and how long this will apply, bearing in mind that research data should be made available as soon as possible.</span></span></span></p>", default_value: "", number: 2, section_id: 23, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "b64a316c-c65e-494a-8b0a-c30488f88eed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What types and formats of data will the project generate/collect? </span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">&nbsp;</span></span></span></p>", default_value: "", number: 2, section_id: 44, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0051cded-1bc8-4c07-bbbe-dbc35d6c3575"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">The EurofleetsPlus data repository will allow you to create the metadata when uploading the data. What metadata elements will be most relevant for other scientists active in the same field as you to assess the fitness of your datasets for their own use? Can you outline them?</span></span></span></p>", default_value: "", number: 2, section_id: 29, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "cd5a3843-266a-4425-afc4-bd2f7af6ca9f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">What types and formats of data will the project generate/collect? </span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">&nbsp;</span></span></span></p>", default_value: "", number: 2, section_id: 28, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0051cded-1bc8-4c07-bbbe-dbc35d6c3575"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">If you answered positive to the previous question, will data access be granted on a user-by-user basis? How will the identity of the person accessing the data be ascertained?</span></span></span></p>", default_value: "", number: 2, section_id: 30, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81c81ed7-d0bb-4a25-8cba-a3dfcf2597ea"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">The EurofleetsPlus data repository will allow you to create the metadata when uploading the data. What metadata elements will be most relevant for other scientists active in the same field as you to assess the fitness of your datasets for their own use? Can you outline them?</span></span></span></p>", default_value: "", number: 2, section_id: 20, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "cd5a3843-266a-4425-afc4-bd2f7af6ca9f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Who will be the principal users of the data? </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Users are both active (those that clean up or analyse the data) and passive (those that read or assess the data).</span></span></span></p>", default_value: "", number: 2, section_id: 18, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0051cded-1bc8-4c07-bbbe-dbc35d6c3575"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">If you answered positive to the previous question, will data access be granted on a user-by-user basis? How will the identity of the person accessing the data be ascertained?</span></span></span></p>", default_value: "", number: 2, section_id: 21, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81c81ed7-d0bb-4a25-8cba-a3dfcf2597ea"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">If you answered positive to the previous question, will data access be granted on a user-by-user basis? How will the identity of the person accessing the data be ascertained?</span></span></span></p>", default_value: "", number: 2, section_id: 38, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "81c81ed7-d0bb-4a25-8cba-a3dfcf2597ea"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">The EurofleetsPlus data repository will allow you to create the metadata when uploading the data. What metadata elements will be most relevant for other scientists active in the same field as you to assess the fitness of your datasets for their own use? Can you outline them?</span></span></span></p>", default_value: "", number: 2, section_id: 37, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "cd5a3843-266a-4425-afc4-bd2f7af6ca9f"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Will you re-use any existing data and how? Is this hosted on any data repository? Which ones?</span></span></span></p>", default_value: "", number: 3, section_id: 44, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d0c7c85b-a19d-43a7-827c-3e4c3bb3f6ed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Will you re-use any existing data and how? Is this hosted on any data repository? Which ones?</span></span></span></p>", default_value: "", number: 3, section_id: 19, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d0c7c85b-a19d-43a7-827c-3e4c3bb3f6ed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Do you plan to make the data and metadata available on another repository than the Eurofleets data repository, for instance an institutional, a thematic or a geographic repository?</span></span></span></p>", default_value: "", number: 3, section_id: 38, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0fbc1cd0-0d74-4127-851e-f08625457ca1"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How many months after the cruise will you provide the data?</span></span></span></p>", default_value: "", number: 3, section_id: 21, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "243484bf-751d-411b-9b7c-81990c96e0d8"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Do you plan to make the data and metadata available on another repository than the Eurofleets data repository, for instance an institutional, a thematic or a geographic repository?</span></span></span></p>", default_value: "", number: 3, section_id: 30, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0fbc1cd0-0d74-4127-851e-f08625457ca1"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Will you re-use any existing data and how? Is this hosted on any data repository? Which ones?</span></span></span></p>", default_value: "", number: 3, section_id: 28, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "d0c7c85b-a19d-43a7-827c-3e4c3bb3f6ed"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Do you plan to make the data and metadata available on another repository than the Eurofleets data repository, for instance an institutional, a thematic or a geographic repository?</span></span></span></p>", default_value: "", number: 4, section_id: 21, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "0fbc1cd0-0d74-4127-851e-f08625457ca1"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How is the original data gathered on board and how do you transfer it to shore? What processing on the raw data do you plan? What will be the end state of the data when it is ready for uptake into a data repository?</span></span></span></p>", default_value: "", number: 4, section_id: 19, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "522e917b-4f55-4bea-850c-18dfdfd47499"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How is the original data gathered on board and how do you transfer it to shore? What processing on the raw data do you plan? What will be the end state of the data when it is ready for uptake into a data repository?</span></span></span></p>", default_value: "", number: 4, section_id: 28, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "522e917b-4f55-4bea-850c-18dfdfd47499"},
+  {text: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">How is the original data gathered on board and how do you transfer it to shore? What processing on the raw data do you plan? What will be the end state of the data when it is ready for uptake into a data repository?</span></span></span></p>", default_value: "", number: 4, section_id: 44, question_format_id: 1, option_comment_display: true, modifiable: nil, versionable_id: "522e917b-4f55-4bea-850c-18dfdfd47499"}
+])
+QuestionFormat.create!([
+  {title: "Text area", description: "http://test.host", option_based: false, formattype: 0},
+  {title: "Text field", description: "http://test.host", option_based: false, formattype: 1},
+  {title: "Radio buttons", description: "http://test.host", option_based: true, formattype: 2},
+  {title: "Check box", description: "http://test.host", option_based: true, formattype: 3},
+  {title: "Dropdown", description: "http://test.host", option_based: true, formattype: 4},
+  {title: "Multi select box", description: "http://test.host", option_based: true, formattype: 5},
+  {title: "Date", description: "http://test.host", option_based: false, formattype: 6}
+])
+Region.create!([
+  {abbreviation: "horizon", description: "European super region", name: "Horizon2020", super_region_id: nil},
+  {abbreviation: "uk", description: "United Kingdom", name: "UK", super_region_id: 1},
+  {abbreviation: "de", description: "Germany", name: "DE", super_region_id: 1},
+  {abbreviation: "fr", description: "France", name: "FR", super_region_id: 1},
+  {abbreviation: "es", description: "Spain", name: "ES", super_region_id: 1},
+  {abbreviation: "us", description: "United States of America", name: "US", super_region_id: nil}
+])
+Role.create!([
+  {user_id: 5, plan_id: 4, access: 15, active: true},
+  {user_id: 5, plan_id: 5, access: 15, active: true},
+  {user_id: 5, plan_id: 6, access: 15, active: true},
+  {user_id: 5, plan_id: 7, access: 15, active: true},
+  {user_id: 5, plan_id: 8, access: 15, active: true},
+  {user_id: 5, plan_id: 9, access: 15, active: true},
+  {user_id: 5, plan_id: 10, access: 15, active: true},
+  {user_id: 5, plan_id: 11, access: 15, active: true},
+  {user_id: 5, plan_id: 12, access: 15, active: true}
+])
+Section.create!([
+  {title: "Data Summary", description: "", number: 1, phase_id: 7, modifiable: true, versionable_id: "d9a8ce8d-3c53-47fb-b30b-735e4166265f"},
+  {title: "Data Summary", description: "", number: 1, phase_id: 8, modifiable: true, versionable_id: "d9a8ce8d-3c53-47fb-b30b-735e4166265f"},
+  {title: "2.1 Making data findable, including provisions for metadata", description: "", number: 2, phase_id: 8, modifiable: true, versionable_id: "5b41b5e8-057c-4a43-976a-873dbcf957f4"},
+  {title: "2.2. Making data openly accessible", description: "", number: 3, phase_id: 8, modifiable: true, versionable_id: "323b1673-12b6-47a3-9534-ffcb04c470c4"},
+  {title: "2.3. Making data interoperable ", description: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Guidance: Reference data centres will make your data interoperable with the standards used in European marine research. A large part of this work is to connect the information surrounding the data in the original datasets to standardized definitions (stored in vocabularies). Therefore it is important that the operations during a scientific cruise are noted down in a detailed way, so that they can be interpreted correctly.</span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">This meta-information should be provided for different elements:</span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Provide the vessel name, and any platform on that vessel (</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">i.e. ROV, AUVs, RIBs,&hellip;) used for sampling</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Campaign:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The code as used by the vessel operator</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the campaign if any</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The ports of departure and arrival</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea areas visited</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">A description of the different features of interest (e.g. sea water column at depth range x, sediment layer at depth range y, benthos communities of gravel beds,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sampling in the case when an ex-situ measurement is taken from the feature of interest:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The scientific purpose of the sampling operation</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The sampling location coordinates and their Coordinate Reference System</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the location, and in case of a station, the station code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, sampling depths and locations at the beginning of the sampling, and if applicable also at the end</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea bottom depth at sampling location if relevant</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Vertical datum: depth reference system (mean sea level,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, length, swath and width over which sampling took place</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact sampling device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Subsamples for chemistry, biology or geology: the extent of the subsample, from which part/depth/organ it was taken,&hellip;</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The observed property you have observed or measured:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The parameter</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>Statistical modifiers (time-averaged, percentile, standard error,...)</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time at which the measurement was taken</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time reference at which the measurement was taken (UTC, time offset to UTC)</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The procedure you applied to take the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Any preparatory steps: sieving, filtration, mixing,,&hellip; </span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">an indication on the fraction (matrix) or combined sample these steps resulted in (e.g. dissolved, particles (180-300um), wet weight/dry weight,&hellip; )</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">For chemistry, a description of all analytical steps taken</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The algorithm you have applied to the raw device output if applicable</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact measurement device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time (plus time reference) at which the result of the procedure was known (if it is different from the time at which the measurement was taken)</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The result of the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The value</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The unit of the value, expressed in units that are considered a community standard</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n</ul>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">(Please note that in the strictest sense, only the elements in bold are considered the data, the rest can be considered meta-information.)</span></span></span></p>", number: 4, phase_id: 8, modifiable: true, versionable_id: "208a5743-2125-4831-92df-66196178a7d8"},
+  {title: "2.4. Increase data re-use (through clarifying licences)", description: "", number: 5, phase_id: 8, modifiable: true, versionable_id: "7b34b916-2c41-4885-9f53-f4428e743de5"},
+  {title: "3. Allocation of resources", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 6, phase_id: 8, modifiable: true, versionable_id: "d498f1f3-8683-4594-8523-403878a03ce6"},
+  {title: "4. Data security", description: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Before the data is transferred to </span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">the</span></span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"> EurofleetsPlus data repository, what provisions are in place for data security (including data recovery, secure storage and transfer)? </span></span></span></p>", number: 7, phase_id: 8, modifiable: true, versionable_id: "8f5f0f50-8036-433b-b34c-79d074f5ae43"},
+  {title: "5. Ethical aspects", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 8, phase_id: 8, modifiable: true, versionable_id: "eb2f69cc-4fcf-441d-926b-3d2d3ae53263"},
+  {title: "6. Other issues", description: "", number: 9, phase_id: 8, modifiable: true, versionable_id: "5e52e594-3ea9-48c9-97f0-e9f55f55536c"},
+  {title: "2.1 Making data findable, including provisions for metadata", description: "", number: 2, phase_id: 10, modifiable: true, versionable_id: "5b41b5e8-057c-4a43-976a-873dbcf957f4"},
+  {title: "2.2. Making data openly accessible", description: "", number: 3, phase_id: 10, modifiable: true, versionable_id: "323b1673-12b6-47a3-9534-ffcb04c470c4"},
+  {title: "2.3. Making data interoperable ", description: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Guidance: Reference data centres will make your data interoperable with the standards used in European marine research. A large part of this work is to connect the information surrounding the data in the original datasets to standardized definitions (stored in vocabularies). Therefore it is important that the operations during a scientific cruise are noted down in a detailed way, so that they can be interpreted correctly.</span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">This meta-information should be provided for different elements:</span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Provide the vessel name, and any platform on that vessel (</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">i.e. ROV, AUVs, RIBs,&hellip;) used for sampling</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Campaign:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The code as used by the vessel operator</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the campaign if any</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The ports of departure and arrival</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea areas visited</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">A description of the different features of interest (e.g. sea water column at depth range x, sediment layer at depth range y, benthos communities of gravel beds,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sampling in the case when an ex-situ measurement is taken from the feature of interest:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The scientific purpose of the sampling operation</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The sampling location coordinates and their Coordinate Reference System</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the location, and in case of a station, the station code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, sampling depths and locations at the beginning of the sampling, and if applicable also at the end</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea bottom depth at sampling location if relevant</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Vertical datum: depth reference system (mean sea level,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, length, swath and width over which sampling took place</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact sampling device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Subsamples for chemistry, biology or geology: the extent of the subsample, from which part/depth/organ it was taken,&hellip;</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The observed property you have observed or measured:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The parameter</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>Statistical modifiers (time-averaged, percentile, standard error,...)</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time at which the measurement was taken</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time reference at which the measurement was taken (UTC, time offset to UTC)</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The procedure you applied to take the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Any preparatory steps: sieving, filtration, mixing,,&hellip; </span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">an indication on the fraction (matrix) or combined sample these steps resulted in (e.g. dissolved, particles (180-300um), wet weight/dry weight,&hellip; )</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">For chemistry, a description of all analytical steps taken</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The algorithm you have applied to the raw device output if applicable</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact measurement device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time (plus time reference) at which the result of the procedure was known (if it is different from the time at which the measurement was taken)</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The result of the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The value</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The unit of the value, expressed in units that are considered a community standard</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n</ul>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">(Please note that in the strictest sense, only the elements in bold are considered the data, the rest can be considered meta-information.)</span></span></span></p>", number: 4, phase_id: 10, modifiable: true, versionable_id: "208a5743-2125-4831-92df-66196178a7d8"},
+  {title: "2.4. Increase data re-use (through clarifying licences)", description: "", number: 5, phase_id: 10, modifiable: true, versionable_id: "7b34b916-2c41-4885-9f53-f4428e743de5"},
+  {title: "3. Allocation of resources", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 6, phase_id: 10, modifiable: true, versionable_id: "d498f1f3-8683-4594-8523-403878a03ce6"},
+  {title: "5. Ethical aspects", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 8, phase_id: 10, modifiable: true, versionable_id: "eb2f69cc-4fcf-441d-926b-3d2d3ae53263"},
+  {title: "6. Other issues", description: "", number: 9, phase_id: 10, modifiable: true, versionable_id: "5e52e594-3ea9-48c9-97f0-e9f55f55536c"},
+  {title: "1. Data Summary", description: "", number: 1, phase_id: 10, modifiable: true, versionable_id: "d9a8ce8d-3c53-47fb-b30b-735e4166265f"},
+  {title: "4. Data security", description: "", number: 7, phase_id: 10, modifiable: true, versionable_id: "8f5f0f50-8036-433b-b34c-79d074f5ae43"},
+  {title: "2.1 Making data findable, including provisions for metadata", description: "", number: 2, phase_id: 12, modifiable: true, versionable_id: "5b41b5e8-057c-4a43-976a-873dbcf957f4"},
+  {title: "2.2. Making data openly accessible", description: "", number: 3, phase_id: 12, modifiable: true, versionable_id: "323b1673-12b6-47a3-9534-ffcb04c470c4"},
+  {title: "2.3. Making data interoperable ", description: "<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Guidance: Reference data centres will make your data interoperable with the standards used in European marine research. A large part of this work is to connect the information surrounding the data in the original datasets to standardized definitions (stored in vocabularies). Therefore it is important that the operations during a scientific cruise are noted down in a detailed way, so that they can be interpreted correctly.</span></span></span></p>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">This meta-information should be provided for different elements:</span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">Provide the vessel name, and any platform on that vessel (</span></span></span><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">i.e. ROV, AUVs, RIBs,&hellip;) used for sampling</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Campaign:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The code as used by the vessel operator</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the campaign if any</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The ports of departure and arrival</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea areas visited</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">A description of the different features of interest (e.g. sea water column at depth range x, sediment layer at depth range y, benthos communities of gravel beds,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sampling in the case when an ex-situ measurement is taken from the feature of interest:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The scientific purpose of the sampling operation</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The sampling location coordinates and their Coordinate Reference System</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The name of the location, and in case of a station, the station code</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, sampling depths and locations at the beginning of the sampling, and if applicable also at the end</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Sea bottom depth at sampling location if relevant</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Vertical datum: depth reference system (mean sea level,...)</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time, length, swath and width over which sampling took place</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact sampling device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Subsamples for chemistry, biology or geology: the extent of the subsample, from which part/depth/organ it was taken,&hellip;</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The observed property you have observed or measured:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The parameter</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>Statistical modifiers (time-averaged, percentile, standard error,...)</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time at which the measurement was taken</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The time reference at which the measurement was taken (UTC, time offset to UTC)</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The procedure you applied to take the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">Any preparatory steps: sieving, filtration, mixing,,&hellip; </span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">an indication on the fraction (matrix) or combined sample these steps resulted in (e.g. dissolved, particles (180-300um), wet weight/dry weight,&hellip; )</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">For chemistry, a description of all analytical steps taken</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The algorithm you have applied to the raw device output if applicable</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The exact measurement device: type, model and make, characteristics, calibration information,...</span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The time (plus time reference) at which the result of the procedure was known (if it is different from the time at which the measurement was taken)</span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\">The result of the measurement:</span></span></span></span></p>\r\n<ul>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The value</strong></span></span></span></span></p>\r\n</li>\r\n<li>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><strong>The unit of the value, expressed in units that are considered a community standard</strong></span></span></span></span></p>\r\n</li>\r\n</ul>\r\n</li>\r\n</ul>\r\n<p class=\"western\" lang=\"en-GB\" style=\"margin-bottom: 0.26cm; line-height: 100%;\" align=\"justify\"><span style=\"color: #0088cc;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\">(Please note that in the strictest sense, only the elements in bold are considered the data, the rest can be considered meta-information.)</span></span></span></p>", number: 4, phase_id: 12, modifiable: true, versionable_id: "208a5743-2125-4831-92df-66196178a7d8"},
+  {title: "2.4. Increase data re-use (through clarifying licences)", description: "", number: 5, phase_id: 12, modifiable: true, versionable_id: "7b34b916-2c41-4885-9f53-f4428e743de5"},
+  {title: "3. Allocation of resources", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 6, phase_id: 12, modifiable: true, versionable_id: "d498f1f3-8683-4594-8523-403878a03ce6"},
+  {title: "5. Ethical aspects", description: "<p>This section does not need to be completed for the preliminary DMP.</p>", number: 8, phase_id: 12, modifiable: true, versionable_id: "eb2f69cc-4fcf-441d-926b-3d2d3ae53263"},
+  {title: "6. Other issues", description: "", number: 9, phase_id: 12, modifiable: true, versionable_id: "5e52e594-3ea9-48c9-97f0-e9f55f55536c"},
+  {title: "1. Data Summary", description: "", number: 1, phase_id: 12, modifiable: true, versionable_id: "d9a8ce8d-3c53-47fb-b30b-735e4166265f"},
+  {title: "4. Data security", description: "", number: 7, phase_id: 12, modifiable: true, versionable_id: "8f5f0f50-8036-433b-b34c-79d074f5ae43"}
+])
+Template.create!([
+  {title: "EurofleetsPlus cruise DMP Template", description: "<p>This is the template for both the preliminary (phase 1) and the full (phase 2) Data Management Plan of EurofleetsPlus cruises. You have to complete a preliminary DMP before you create your application in the official EurofleetsPlus application portal. This preliminary DMP contains a more limited set of questions. You can leave out details at this stage.</p>\r\n<p>After the funding for the Eurofleets campaign has been granted to you, you need to complete the final&nbsp; DMP. For this, you need to asnwer additional questions and extend your existing answers to cover the issues more in-depth. This final DMP is a new 'phase', which means you will have to copy-paste your existing answers from the preliminary DMP phase to the full DMP phase and extend them.</p>", published: false, org_id: 7, locale: "en-GB", is_default: true, version: 3, visibility: 1, customization_of: nil, family_id: 54713870, archived: false, links: {"funder"=>[{"link"=>"http://www.eurofleets.eu", "text"=>""}], "sample_plan"=>[]}},
+  {title: "EurofleetsPlus cruise preliminary DMP Template", description: "<p>This is the template for the preliminary Data Management Plan of EurofleetsPlus cruises. You have to complete a preliminary DMP before you create your application in the official EurofleetsPlus application portal. This preliminary DMP contains a more limited set of questions. After the funing for the Eurofleets campaign has been granted to you, you need to complete the final&nbsp; DMP. For this, you need to asnwer additional questions and extend your existing answers. This final DMP makes use of another template, which means you will have to copy-paste your existing answers from the preliminary DMP to the full DMP.</p>", published: false, org_id: 7, locale: "en-GB", is_default: true, version: 1, visibility: 1, customization_of: nil, family_id: 54713870, archived: false, links: {"funder"=>[{"link"=>"http://www.eurofleets.eu", "text"=>""}], "sample_plan"=>[]}},
+  {title: "Yet another template", description: "", published: true, org_id: 8, locale: "en-GB", is_default: false, version: 0, visibility: 1, customization_of: nil, family_id: nil, archived: false, links: {"funder"=>[], "sample_plan"=>[]}},
+  {title: "EurofleetsPlus cruise DMP Template", description: "<p>This is the template for both the preliminary (phase 1) and the full (phase 2) Data Management Plan of EurofleetsPlus cruises. You have to complete a preliminary DMP before you create your application in the official EurofleetsPlus application portal. This preliminary DMP contains a more limited set of questions. You can leave out details at this stage.</p>\r\n<p>After the funding for the Eurofleets campaign has been granted to you, you need to complete the final&nbsp; DMP. For this, you need to asnwer additional questions and extend your existing answers to cover the issues more in-depth. This final DMP is a new 'phase', which means you will have to copy-paste your existing answers from the preliminary DMP phase to the full DMP phase and extend them.</p>", published: false, org_id: 7, locale: "en-GB", is_default: true, version: 2, visibility: 1, customization_of: nil, family_id: 54713870, archived: false, links: {"funder"=>[{"link"=>"http://www.eurofleets.eu", "text"=>""}], "sample_plan"=>[]}},
+  {title: "EurofleetsPlus cruise proposal DMP Template", description: "<p>The Data Management Plan template used for Eurofleets Plus proposal cruises. </p>", published: false, org_id: 7, locale: "en-GB", is_default: true, version: 0, visibility: 0, customization_of: nil, family_id: 54713870, archived: false, links: {"funder"=>[], "sample_plan"=>[]}},
+  {title: "EurofleetsPlus cruise DMP Template", description: "<p>This is the template for both the preliminary (phase 1) and the full (phase 2) Data Management Plan of EurofleetsPlus cruises. You have to complete a preliminary DMP before you create your application in the official EurofleetsPlus submission website. This preliminary DMP contains a more limited set of questions. You can leave out details at this stage.</p>\r\n<p>After the funding for the Eurofleets campaign has been granted to you, you need to complete the final&nbsp; DMP. For this, you need to asnwer additional questions and extend your existing answers to cover the issues more in-depth. This final DMP is a new 'phase', which means you will have to copy-paste your existing answers from the preliminary DMP phase to the full DMP phase and extend them.</p>\r\n<p>The three reference data centres will review your DMP and provide feedback at that stage. It should be updated during the project lifetime, especially after the cruise ended, to reflect any changes to your data management procedures.</p>\r\n<p><em><span style=\"color: #00000a;\"><span style=\"font-family: Arial, serif;\"><span style=\"font-size: small;\"><span lang=\"en-GB\"><span style=\"font-style: normal;\"><span style=\"font-weight: normal;\">&nbsp;</span></span></span></span></span></span></em></p>\r\n<p>&nbsp;</p>", published: true, org_id: 7, locale: "en-GB", is_default: true, version: 4, visibility: 1, customization_of: nil, family_id: 54713870, archived: false, links: {"funder"=>[{"link"=>"http://www.eurofleets.eu", "text"=>""}], "sample_plan"=>[]}}
+])
+Theme.create!([
+  {title: "Data Description", description: "Incidunt aliquam quasi. Doloribus laudantium rerum. Voluptas dignissimos nobis.", locale: "en_GB"},
+  {title: "Data Format", description: "Nostrum natus similique. Error sed dignissimos. Ipsam veniam iusto.", locale: "en_GB"},
+  {title: "Data Volume", description: "Dicta omnis omnis. Illum laborum explicabo. Voluptatum numquam doloremque.", locale: "en_GB"},
+  {title: "Data Collection", description: "Sit qui aut. Nam dolore tempora. Veritatis consequatur debitis.", locale: "en_GB"},
+  {title: "Metadata & Documentation", description: "Aut maxime minus. Ut dolorem molestiae. Et aut exercitationem.", locale: "en_GB"},
+  {title: "Ethics & Privacy", description: "Sed sed a. Cum ut laboriosam. Assumenda et molestiae.", locale: "en_GB"},
+  {title: "Intellectual Property Rights", description: "Non consectetur aut. Accusamus eos et. Pariatur dolorem qui.", locale: "en_GB"},
+  {title: "Storage & Security", description: "Eveniet qui dolores. Quas officiis deleniti. Sit molestias et.", locale: "en_GB"},
+  {title: "Data Sharing", description: "Corporis qui voluptas. Sapiente ex sed. Sunt nihil sit.", locale: "en_GB"},
+  {title: "Data Repository", description: "Officia quis laboriosam. Nemo autem qui. Asperiores in optio.", locale: "en_GB"},
+  {title: "Preservation", description: "Odio modi velit. Quia fugiat autem. Et laudantium ipsa.", locale: "en_GB"},
+  {title: "Roles & Responsibilities", description: "Maiores sint a. Repellendus veniam et. Neque aut asperiores.", locale: "en_GB"},
+  {title: "Budget", description: "Modi eos dolores. Dolore vitae ratione. Non laudantium est.", locale: "en_GB"},
+  {title: "Related Policies", description: "Fuga deserunt tempora. Sit accusantium earum. Consequatur et incidunt.", locale: "en_GB"}
+])
+TokenPermissionType.create!([
+  {token_type: "guidances", text_description: "allows a user access to the guidances api endpoint"},
+  {token_type: "plans", text_description: "allows a user access to the plans api endpoint"},
+  {token_type: "templates", text_description: "allows a user access to the templates api endpoint"},
+  {token_type: "statistics", text_description: "allows a user access to the statistics api endpoint"}
+])
