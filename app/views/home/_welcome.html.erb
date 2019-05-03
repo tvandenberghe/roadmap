@@ -2,7 +2,7 @@
 <div>
   <h1><%= _("Welcome to #{Rails.configuration.branding[:application][:name]}.")%></h1>
   <p>
-    <%= sanitize _('<p>%{application_name} has been developed by the <strong>%{organisation_name}</strong> to help you write data management plans.</p>') % {
+    <%= sanitize _('<p>%{application_name} has been developed by the Curation Center and adapted by <strong>%{organisation_name}</strong> to help you write a data management plan for EurofleetsPlus cruises.</p>') % {
       application_name: Rails.configuration.branding[:application][:name],
       organisation_name: Rails.configuration.branding[:organisation][:name]}
       %>

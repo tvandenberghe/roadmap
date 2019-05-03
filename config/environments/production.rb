@@ -65,7 +65,7 @@ config.webpacker.check_yarn_integrity = false
   # config.action_mailer.raise_delivery_errors = false
 
   # Set default host for mailer URLs
-  # config.action_mailer.default_url_options = {host: "example.com"}
+   config.action_mailer.default_url_options = {host: "naturalsciences.be"}
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
