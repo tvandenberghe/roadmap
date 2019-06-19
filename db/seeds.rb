@@ -41,14 +41,14 @@ Perm.create!([
   {id: 8, name: "grant_api_to_orgs"}
 ])
 Perm::HABTM_Users.create!([
-  {user_id: 5, perm_id: 1},
-  {user_id: 5, perm_id: 2},
-  {user_id: 5, perm_id: 3},
-  {user_id: 5, perm_id: 4},
-  {user_id: 5, perm_id: 5},
-  {user_id: 5, perm_id: 6},
-  {user_id: 5, perm_id: 7},
-  {user_id: 5, perm_id: 8}
+  {user_id: 1, perm_id: 1},
+  {user_id: 1, perm_id: 2},
+  {user_id: 1, perm_id: 3},
+  {user_id: 1, perm_id: 4},
+  {user_id: 1, perm_id: 5},
+  {user_id: 1, perm_id: 6},
+  {user_id: 1, perm_id: 7},
+  {user_id: 1, perm_id: 8}
 ])
 User::HABTM_Perms.create!([
   {user_id: 1, perm_id: 1},
