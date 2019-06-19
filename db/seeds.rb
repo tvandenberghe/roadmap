@@ -30,6 +30,26 @@ Org.create!([
 User.create!([
   {id: 1, firstname: "Thomas", surname: "Vandenberghe", email: "tvandenberghe@naturalsciences.be", password: "password123", password_confirmation: "password123", encrypted_password: "$2a$04$ciUjBnBrb6JntxmNxCykUeBKv36.iW7nKR34MuUaVvSf9Dbf8x31y", reset_password_token: nil, reset_password_sent_at: nil, remember_created_at: nil, sign_in_count: 7, current_sign_in_at: "2019-05-03 12:33:14", last_sign_in_at: "2019-05-03 12:18:05", current_sign_in_ip: "127.0.0.1", last_sign_in_ip: "127.0.0.1", confirmation_token: nil, confirmed_at: nil, confirmation_sent_at: nil, invitation_token: nil, invitation_created_at: nil, invitation_sent_at: nil, invitation_accepted_at: nil, other_organisation: nil, accept_terms: true, org_id: 1, api_token: nil, invited_by_id: nil, invited_by_type: nil, language_id: 1, recovery_email: nil, active: true}
 ])
+Perm.create!([
+  {id: 1, name: "add_organisations"},
+  {id: 2, name: "change_org_affiliation"},
+  {id: 3, name: "grant_permissions"},
+  {id: 4, name: "modify_templates"},
+  {id: 5, name: "modify_guidance"},
+  {id: 6, name: "use_api"},
+  {id: 7, name: "change_org_details"},
+  {id: 8, name: "grant_api_to_orgs"}
+])
+Perm::HABTM_Users.create!([
+  {user_id: 5, perm_id: 1},
+  {user_id: 5, perm_id: 2},
+  {user_id: 5, perm_id: 3},
+  {user_id: 5, perm_id: 4},
+  {user_id: 5, perm_id: 5},
+  {user_id: 5, perm_id: 6},
+  {user_id: 5, perm_id: 7},
+  {user_id: 5, perm_id: 8}
+])
 User::HABTM_Perms.create!([
   {user_id: 1, perm_id: 1},
   {user_id: 1, perm_id: 2},
@@ -90,26 +110,6 @@ GuidanceGroup.create!([
 ])
 Note.create!([
   {user_id: 5, text: "<p>This is a stupid Q</p>", archived: true, answer_id: 7, archived_by: 5}
-])
-Perm.create!([
-  {id: 1, name: "add_organisations"},
-  {id: 2, name: "change_org_affiliation"},
-  {id: 3, name: "grant_permissions"},
-  {id: 4, name: "modify_templates"},
-  {id: 5, name: "modify_guidance"},
-  {id: 6, name: "use_api"},
-  {id: 7, name: "change_org_details"},
-  {id: 8, name: "grant_api_to_orgs"}
-])
-Perm::HABTM_Users.create!([
-  {user_id: 5, perm_id: 1},
-  {user_id: 5, perm_id: 2},
-  {user_id: 5, perm_id: 3},
-  {user_id: 5, perm_id: 4},
-  {user_id: 5, perm_id: 5},
-  {user_id: 5, perm_id: 6},
-  {user_id: 5, perm_id: 7},
-  {user_id: 5, perm_id: 8}
 ])
 Phase.create!([
   {title: "Preparatory DMP", description: "", number: 1, template_id: 8, modifiable: true, versionable_id: "a8e3661e-29bf-431f-b238-4234cd87b057"},
