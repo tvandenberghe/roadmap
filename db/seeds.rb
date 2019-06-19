@@ -23,6 +23,10 @@ Language.create!([
   {abbreviation: "pt-BR", description: "pt-BR", name: "pt-BR", default_language: false},
   {abbreviation: "sv-FI", description: "sv-FI", name: "sv-FI", default_language: false}
 ])
+Org.create!([
+  {name: "EurofleetsPlus", abbreviation: "EF+", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "tvandenberghe@naturalsciences.be", org_type: 7, links: {"org"=>[{"link"=>"www.eurofleets.eu", "text"=>"Eurofleets website"}]}, contact_name: "tvandenberghe@naturalsciences.be", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil},
+  {name: "Your Research Institute", abbreviation: "YRI", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "blurb@inst.ac.com", org_type: 5, links: {"org"=>[]}, contact_name: "", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil}
+])
 User.create!([
   {firstname: "Thomas", surname: "Vandenberghe", email: "tvandenberghe@naturalsciences.be", encrypted_password: "$2a$04$ciUjBnBrb6JntxmNxCykUeBKv36.iW7nKR34MuUaVvSf9Dbf8x31y", reset_password_token: nil, reset_password_sent_at: nil, remember_created_at: nil, sign_in_count: 7, current_sign_in_at: "2019-05-03 12:33:14", last_sign_in_at: "2019-05-03 12:18:05", current_sign_in_ip: "127.0.0.1", last_sign_in_ip: "127.0.0.1", confirmation_token: nil, confirmed_at: nil, confirmation_sent_at: nil, invitation_token: nil, invitation_created_at: nil, invitation_sent_at: nil, invitation_accepted_at: nil, other_organisation: nil, accept_terms: true, org_id: 7, api_token: nil, invited_by_id: nil, invited_by_type: nil, language_id: 1, recovery_email: nil, active: true}
 ])
@@ -86,10 +90,6 @@ GuidanceGroup.create!([
 ])
 Note.create!([
   {user_id: 5, text: "<p>This is a stupid Q</p>", archived: true, answer_id: 7, archived_by: 5}
-])
-Org.create!([
-  {name: "EurofleetsPlus", abbreviation: "EF+", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "tvandenberghe@naturalsciences.be", org_type: 7, links: {"org"=>[{"link"=>"www.eurofleets.eu", "text"=>"Eurofleets website"}]}, contact_name: "tvandenberghe@naturalsciences.be", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil},
-  {name: "Your Research Institute", abbreviation: "YRI", target_url: nil, is_other: false, sort_name: nil, region_id: nil, language_id: 1, logo_uid: nil, logo_name: nil, contact_email: "blurb@inst.ac.com", org_type: 5, links: {"org"=>[]}, contact_name: "", feedback_enabled: false, feedback_email_subject: nil, feedback_email_msg: nil}
 ])
 Perm.create!([
   {name: "add_organisations"},
