@@ -9,8 +9,9 @@
   #statements.pop
 
   ActiveRecord::Base.transaction do
-    statements.each do |statement|
-      connection.execute(statement)
-    end
+    connection.execute(statements)
+    #statements.each do |statement|
+    #  connection.execute(statement)
+    #end
   end
 #end
