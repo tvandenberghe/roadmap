@@ -7,4 +7,4 @@ def execute_sql_file(path, connection = ActiveRecord::Base.connection)
   end
 end
 
-execute_sql_file('seeds.sql')
+execute_sql_file(File.dirname(__FILE__) + '/seeds.sql')
