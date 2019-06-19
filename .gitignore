@@ -31,7 +31,7 @@ config/locales/static_pages/*.yml
 # db/schema.rb
 
 # Ignore seed DBs
-db/data.yml
+#db/data.yml
 
 # Ignore the test DB
 db/test.sqlite3
