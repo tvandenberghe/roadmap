@@ -1,7 +1,7 @@
 #unless Rails.env.production?
   connection = ActiveRecord::Base.connection
   connection.tables.each do |table|
-    connection.execute("TRUNCATE #{table}") unless table == "schema_migrations"
+    connection.execute("TRUNCATE #{table} CASCADE" ) unless table == "schema_migrations"
   end
 
   sql = File.read('db/seeds.sql')
