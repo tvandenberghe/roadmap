@@ -5,8 +5,8 @@
   end
 
   sql = File.read('db/seeds.sql')
-  statements = sql.split(/;$/)
-  statements.pop
+  statements = sql#.split(/;$/)
+  #statements.pop
 
   ActiveRecord::Base.transaction do
     statements.each do |statement|
