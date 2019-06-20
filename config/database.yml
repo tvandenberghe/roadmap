@@ -3,6 +3,7 @@ defaults: &defaults
   encoding: <%= ENV['DB_ADAPTER'] == "mysql2" ? "utf8mb4" : "" %>
   username: <%= ENV["DB_ADAPTER"] == "postgresql" ? 'postgres' : '' %>
   host: 127.0.0.1
+  password: postgres
   database: roadmap_<%= ENV['RAILS_ENV'] %>
   pool: 5
 

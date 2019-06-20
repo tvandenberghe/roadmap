@@ -90,5 +90,5 @@ Edit ./Gemfile and comment out the whole `group :mysql do` section, we're using 
 
 	rake webpacker:install
 	rake webpacker:yarn_install
-	
+	yarn upgrade
 	rake webpacker:compile
