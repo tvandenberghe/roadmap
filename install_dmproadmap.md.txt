@@ -14,16 +14,19 @@ Remove previous versions of Ruby:
 	sudo apt-get remove ruby
 	sudo apt-get remove ruby2.3
 
+Do not run as root
+
 	gpg2 --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
-	\curl -sSL https://get.rvm.io | bash -s stable
-	source /home/thomas/.rvm/scripts/rvm
+	sudo \curl -sSL https://get.rvm.io | sudo bash -s stable
+	run the command that appears in the confirmation message: source /etc/profile.d/rvm.sh
+	add user to the rvm group: sudo /usr/sbin/usermod -a -G rvm tvandenberghe
 
 If Ruby was previously installed:
 
 	rvm fix-permissions
 	rvm reinstall ruby-2.4
 
-else 
+else: 
 
 	rvm install ruby-2.4
 	ruby -v
@@ -31,7 +34,7 @@ else
 ## Install Rails
 
 	sqlite3 --version
-	sudo apt-get install sqlite3
+	if needed: sudo apt-get install sqlite3
 	gem install rails
 	rails -v
 
@@ -41,10 +44,12 @@ Edit ~/.bashrc and add `[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/
 
 	mkdir ./ruby
 	cd ruby
-	git clone https://github.com/DMPRoadmap/roadmap.git
+	git clone https://github.com/tvandenberghe/roadmap.git
 	cd roadmap
 
 Edit ./Gemfile and comment out the whole `group :mysql do` section, we're using PG anyway.
+
+Don't run as root
 
 	bin/setup
 	rake secret
@@ -85,10 +90,19 @@ Edit ./Gemfile and comment out the whole `group :mysql do` section, we're using 
 	sudo apt-get update && sudo apt-get install yarn
 
 	yarn upgrade
-
+	
+	Make sure that all gems are executable: 
+	sudo chown -R tvandenberghe:dmp .
 ## Install webpacker
 
-	rake webpacker:install
-	rake webpacker:yarn_install
-	yarn upgrade
+	#rake webpacker:install
+	#normally not needed rake webpacker:yarn_install
+
+## Compile assets with webpacker
 	rake webpacker:compile
+
+	sudo chgrp -R rvm /usr/local/rvm/gems & sudo chmod -R g+rwx /usr/local/rvm/gems & sudo chmod -R g+rwx /usr/local/ruby/roadmap & sudo /usr/sbin/usermod -a -G rvm dmp & rvm fix-permissions
+
+sudo nano /var/log/syslog
+
+Jun 20 17:15:56 monachus dmp[25240]: /usr/local/rvm/gems/ruby-2.4.6/gems/railties-4.2.11.1/lib/rails/railtie/configuration.rb:95:in `method_missing': undefined method `branding' for #<Rails::Application::Configuration:0x0000557882a47d88$
