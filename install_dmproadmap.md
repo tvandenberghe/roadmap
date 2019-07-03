@@ -1,5 +1,6 @@
 # Install DMP Roadmap
 Thomas Vandenberghe - 2019-04-11
+
 Based on https://github.com/DMPRoadmap/roadmap/wiki/Installation
 
 ## Dependencies
@@ -95,14 +96,13 @@ Don't run as root
 	sudo chown -R tvandenberghe:dmp .
 ## Install webpacker
 
-	#rake webpacker:install
-	#normally not needed rake webpacker:yarn_install
+	rake webpacker:install
+	rake webpacker:yarn_install
 
 ## Compile assets with webpacker
-	rake webpacker:compile
 
+	rake webpacker:compile
 	sudo chgrp -R rvm /usr/local/rvm/gems & sudo chmod -R g+rwx /usr/local/rvm/gems & sudo chmod -R g+rwx /usr/local/ruby/roadmap & sudo /usr/sbin/usermod -a -G rvm dmp & rvm fix-permissions
 
+##Inspect Rails logs
 sudo nano /var/log/syslog
-
-Jun 20 17:15:56 monachus dmp[25240]: /usr/local/rvm/gems/ruby-2.4.6/gems/railties-4.2.11.1/lib/rails/railtie/configuration.rb:95:in `method_missing': undefined method `branding' for #<Rails::Application::Configuration:0x0000557882a47d88$
