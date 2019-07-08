@@ -3,12 +3,12 @@ RUN apt-get update -qq
 RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
 RUN apt-get install -y nodejs 
 RUN bash -c 'nodejs -v'
-RUN npm install
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' >> /etc/apt/sources.list.d/pgdg.list
 RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 RUN apt-get install -y postgresql-client
 COPY . /application
 WORKDIR /application
+RUN npm install
 ARG db_password
 ENV DB_ADAPTER=postgresql
 ENV DB_HOST=db_host
