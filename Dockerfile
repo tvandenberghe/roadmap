@@ -20,11 +20,11 @@ RUN bin/setup
 
 #RUN export SECRET_KEY_BASE=$(rake secret);echo $SECRET_KEY_BASE; sed "s:<%= ENV\['SECRET_KEY_BASE'\] %>:$SECRET_KEY_BASE:g" config/secrets.yml;
 #RUN export DEVISE_SECRET_KEY=$(rake secret);echo $DEVISE_SECRET_KEY;
-#ENV DEVISE_SECRET_KEY=$DEVISE_SECRET_KEY
-#ENV SECRET_KEY_BASE=$SECRET_KEY_BASE
 
 RUN bash -l -c 'echo export SECRET_KEY_BASE="$(rake secret)" >> /etc/bash.bashrc'
 RUN bash -l -c 'echo export DEVISE_SECRET_KEY="$(rake secret)" >> /etc/bash.bashrc'
+ENV DEVISE_SECRET_KEY=$DEVISE_SECRET_KEY
+ENV SECRET_KEY_BASE=$SECRET_KEY_BASE
 
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
