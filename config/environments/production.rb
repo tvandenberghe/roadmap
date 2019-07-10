@@ -1,7 +1,4 @@
 Rails.application.configure do
-  # Verifies that versions and hashed value of the package contents in the project's package.json
-config.webpacker.check_yarn_integrity = false
-
   # Verifies that versions and hashed value of the package contents in the project's
   # package.json
   config.webpacker.check_yarn_integrity = false
@@ -65,7 +62,35 @@ config.webpacker.check_yarn_integrity = false
   # config.action_mailer.raise_delivery_errors = false
 
   # Set default host for mailer URLs
-   config.action_mailer.default_url_options = {host: "naturalsciences.be"}
+   config.action_mailer.default_url_options = { :host => 'dmp.ef-ears.eu'}
+   
+   config.action_mailer.delivery_method = :smtp
+   config.action_mailer.perform_deliveries = true
+   config.action_mailer.raise_delivery_errors = true
+
+   config.action_mailer.smtp_settings = {   
+    #:openssl_verify_mode => OpenSSL::SSL::VERIFY_NONE,      
+    #:ssl => true,
+    #:enable_starttls_auto => true,  #this is the important stuff!
+    :address        => 'smtp.naturalsciences.be',
+    :port           => 25,
+    #:authentication => :plain
+    #:user_name      => 'CarlVonLinne',
+    #:password       => 'abracadabra'
+  }
+  
+#     config.action_mailer.smtp_settings = {   
+#    :openssl_verify_mode => OpenSSL::SSL::VERIFY_NONE,      
+#    :ssl => true,
+#    :enable_starttls_auto => true,  #this is the important stuff!
+#    :address        => 'smtp.naturalsciences.be',
+#    :port           => 25,
+#    :domain         => '',
+#    :authentication => :plain,
+#    :user_name      => 'tvandenberghe@naturalsciences.be',
+#    :password       => 'Abracadabra'
+#  }
+   #config.action_mailer.default_url_options = { :host => "#{Socket.gethostname}" }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

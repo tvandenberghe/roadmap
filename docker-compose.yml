@@ -1,9 +1,0 @@
-build:
-  context: .
-web:
-  ports:
-    - 3000:3000
-  environment:
-    PRODUCTION: 'true'
-  extra_hosts:
-    - "db_host:10.23.21.0"
