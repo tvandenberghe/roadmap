@@ -9,6 +9,10 @@ COPY package.json /application
 WORKDIR /application
 RUN npm install
 
+#COPY Gemfile /application
+#COPY bin/setup /application/bin/
+#RUN bin/setup
+
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
 RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 RUN apt-get install -y yarn
@@ -22,7 +26,7 @@ ENV RAILS_ENV=production
 ENV DEVISE_SECRET_KEY=$secret
 ENV SECRET_KEY_BASE=$secret
 
-RUN psql -h "$DB_HOST" -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'roadmap_$RAILS_ENV'" | grep -q 1 || (psql -h "$DB_HOST" -U postgres -tc "CREATE DATABASE roadmap_$RAILS_ENV" && psql -h "$DB_HOST" -d "roadmap_$RAILS_ENV" -U postgres -f db/seeds_full.sql)
+#RUN psql -h "$DB_HOST" -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'roadmap_$RAILS_ENV'" | grep -q 1 || (psql -h "$DB_HOST" -U postgres -tc "CREATE DATABASE roadmap_$RAILS_ENV" && psql -h "$DB_HOST" -d "roadmap_$RAILS_ENV" -U postgres -f db/seeds_full.sql)
 
 COPY . /application
 COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.min.css /application/app/assets/vendor/jquery-ui/datepicker/
