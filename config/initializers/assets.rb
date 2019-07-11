@@ -9,14 +9,16 @@ if Rails.env.staging? or Rails.env.production?
 
   Rails.application.config.assets.css_compressor = :sass
 
-  Rails.application.config.sass.inline_source_maps = false
+  Rails.application.config.sass.inline_source_maps = true #false
 
   # Do not fallback to assets pipeline if a precompiled asset is missed.
-  Rails.application.config.assets.compile = false
+  Rails.application.config.assets.compile = true
+  #false #caused jquery-ui.structure.min.css and two other datapicker jquery css files to be not found. Seems to be a non-crucial error
+  #true may also be problematic #caused jquery-ui.structure.min.css and two other datapicker jquery css files to be not found.
 
   # This option may cause significant delays in view rendering with a large
   # number of complex assets.
-  Rails.application.config.assets.debug = false
+  Rails.application.config.assets.debug = true#false
 
   # yet still be able to expire them through the digest params.
   Rails.application.config.assets.digest = true

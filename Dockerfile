@@ -29,22 +29,17 @@ ENV SECRET_KEY_BASE=$secret
 #RUN psql -h "$DB_HOST" -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'roadmap_$RAILS_ENV'" | grep -q 1 || (psql -h "$DB_HOST" -U postgres -tc "CREATE DATABASE roadmap_$RAILS_ENV" && psql -h "$DB_HOST" -d "roadmap_$RAILS_ENV" -U postgres -f db/seeds_full.sql)
 
 COPY . /application
-COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.min.css /application/app/assets/vendor/jquery-ui/datepicker/
-COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.structure.min.css /application/app/assets/vendor/jquery-ui/datepicker/
-COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.theme.min.css /application/app/assets/vendor/jquery-ui/datepicker/
+#COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.min.css /application/app/assets/vendor/jquery-ui/datepicker/
+#COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.structure.min.css /application/app/assets/vendor/jquery-ui/datepicker/
+#COPY app/assets/stylesheets/vendor/jquery-ui/datepicker/jquery-ui.theme.min.css /application/app/assets/vendor/jquery-ui/datepicker/
 
 RUN bin/setup
+#RUN npm run bundle -- -p --no-watch
 
-#RUN export SECRET_KEY_BASE=$(openssl rand -hex 64);echo $SECRET_KEY_BASE; sed "s:<%= ENV\['SECRET_KEY_BASE'\] %>:$SECRET_KEY_BASE:g" config/secrets.yml;
-#RUN export DEVISE_SECRET_KEY=$(rake secret);echo $DEVISE_SECRET_KEY;
-# rake secret   openssl rand -hex 64
-#RUN /bin/sh -l -c 'echo export SECRET_KEY_BASE="$(rake secret)" >> /etc/bash.bashrc'
-#RUN /bin/sh -l -c 'echo export DEVISE_SECRET_KEY="$(rake secret)" >> /etc/bash.bashrc'
-#RUN ["/bin/bash", "-l -c", "echo export SECRET_KEY_BASE="$(rake secret)" >> /etc/bash.bashrc"]
-#ENV DEVISE_SECRET_KEY=$DEVISE_SECRET_KEY
-#ENV SECRET_KEY_BASE=$SECRET_KEY_BASE
+RUN cp -r node_modules/tinymce public/
+RUN rm -rf public/assets
+RUN rm -rf public/packs
 
-#RUN rake webpacker:install
 RUN rake webpacker:yarn_install
 EXPOSE 3000
 ENTRYPOINT ./entrypoint.sh

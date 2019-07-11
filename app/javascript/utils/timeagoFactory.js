@@ -1,4 +1,4 @@
-import enGB from '../locale/en_GB/timeago';
+import enGB from 'locale/en_GB/timeago.js'; //remove ../ since we're using webpack and app/javascript is the start 
 
 /* global timeago */
 const TimeagoFactory = (() => {
@@ -9,7 +9,7 @@ const TimeagoFactory = (() => {
   */
   return {
     render: (el) => {
-      timeago().render(el, 'en_GB');
+      timeago.render(el, 'en_GB');
     },
   };
 })();
