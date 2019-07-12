@@ -14,11 +14,10 @@ if Rails.env.staging? or Rails.env.production?
   # Do not fallback to assets pipeline if a precompiled asset is missed.
   Rails.application.config.assets.compile = true
   #false #caused jquery-ui.structure.min.css and two other datapicker jquery css files to be not found. Seems to be a non-crucial error
-  #true may also be problematic #caused jquery-ui.structure.min.css and two other datapicker jquery css files to be not found.
 
   # This option may cause significant delays in view rendering with a large
   # number of complex assets.
-  Rails.application.config.assets.debug = true#false
+  Rails.application.config.assets.debug = false
 
   # yet still be able to expire them through the digest params.
   Rails.application.config.assets.digest = true
