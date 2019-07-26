@@ -18,7 +18,7 @@ defaults: &defaults
         url: 'http://ec.europa.eu/research/participants/data/ref/h2020/grants_manual/hi/oa_pilot/h2020-hi-oa-data-mgt_en.pdf'
       - link3:
         title: 'Eurofleets+ Data Management Guidelines - including help with DMPs'
-        url: 'http://dmp.ef-ears.eu/files/EF+_data_management_guidelines_PI.pdf'
+        url: 'https://github.com/tvandenberghe/roadmap/raw/ef-dmp/public/files/EF+_data_management_guidelines_PI.pdf'
 
     # Warning: this value will be used to override the URl of the application's built-in contact form. It will
     #          replace the link in all email communications as well as the contact link in the page footer!
