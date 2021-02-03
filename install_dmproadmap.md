@@ -1,4 +1,4 @@
-# Install DMP Roadmap
+# Install DMP Roadmap - the long way
 Thomas Vandenberghe - 2019-04-11
 
 Based on https://github.com/DMPRoadmap/roadmap/wiki/Installation
@@ -106,3 +106,9 @@ Don't run as root
 
 ##Inspect Rails logs
 sudo nano /var/log/syslog
+
+# Install DMP Roadmap - using docker
+
+	First you have to build the docker image.
+	sudo docker build --add-host=db_host:10.23.21.224 --build-arg db_password=postgres --build-arg secret=$(openssl rand -hex 64) -t ef/dmp .
+	sudo docker run -dit --add-host=db_host:10.23.21.224 -p 3000:3000 --name dmp  ef/dmp
